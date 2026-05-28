@@ -211,54 +211,15 @@ LRESULT CMainWindow::DoCommand(int id)
             break;
         case IDM_EXIT:
             Shell_NotifyIcon(NIM_DELETE, &niData);
-            if (m_hKeyboardHook)
-                UnhookWindowsHookEx(m_hKeyboardHook);
-            if (m_hMouseHook)
-                UnhookWindowsHookEx(m_hMouseHook);
-            m_hKeyboardHook = nullptr;
-            m_hMouseHook    = nullptr;
-            for (auto& wnd : m_overlayWnds)
-            {
-                ShowWindow(*wnd.get(), SW_HIDE);
-                CloseWindow(*wnd.get());
-                DestroyWindow(*wnd.get());
-            }
-            ShowWindow(*m_infoOverlay.get(), SW_HIDE);
-            CloseWindow(*m_infoOverlay.get());
-            DestroyWindow(*m_infoOverlay.get());
-            m_overlayWnds.clear();
-            m_infoOverlay.reset(nullptr);
-            ShowWindow(m_mouseOverlay, SW_HIDE);
-            CloseWindow(m_mouseOverlay);
-            DestroyWindow(m_mouseOverlay);
             ::PostQuitMessage(0);
             return 0;
         case ID_TRAYCONTEXT_OPTIONS:
         {
-            // deregister our hotkeys
             UnregisterHotKey(*this, DRAW_HOTKEY);
             UnregisterHotKey(*this, ZOOM_HOTKEY);
             UnregisterHotKey(*this, LENS_HOTKEY);
-            // remove hooks
-            if (m_hKeyboardHook)
-                UnhookWindowsHookEx(m_hKeyboardHook);
-            if (m_hMouseHook)
-                UnhookWindowsHookEx(m_hMouseHook);
-            m_hKeyboardHook = nullptr;
-            m_hMouseHook    = nullptr;
             DialogBox(hResource, MAKEINTRESOURCE(IDD_OPTIONS), *this, reinterpret_cast<DLGPROC>(OptionsDlgProc));
-            // now register our hotkeys again
             RegisterHotKeys();
-            // and install the hooks if requested
-            m_hMouseHook = SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, g_hInstance, 0);
-            if (CIniSettings::Instance().GetInt64(L"Hooks", L"keyboard", 1))
-                m_hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, g_hInstance, 0);
-            m_bMouseVisuals   = CIniSettings::Instance().GetInt64(L"Misc", L"mousevisual", 1) != 0;
-            m_bMouseClicks    = CIniSettings::Instance().GetInt64(L"Hooks", L"mouse", 1) != 0;
-            m_mvLColor        = static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Misc", L"mousevisualLcolor", RGB(255, 0, 0)));
-            m_mvMColor        = static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Misc", L"mousevisualMcolor", RGB(0, 0, 255)));
-            m_mvRColor        = static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Misc", L"mousevisualRcolor", RGB(0, 255, 0)));
-            m_overlayPosition = static_cast<OverlayPosition>(CIniSettings::Instance().GetInt64(L"Misc", L"OvlPosition", static_cast<int64_t>(OverlayPosition::BottomRight)));
         }
         break;
         case ID_TRAYCONTEXT_DRAW:

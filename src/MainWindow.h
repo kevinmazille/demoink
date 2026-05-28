@@ -24,8 +24,6 @@
 #include "hyperlink.h"
 #include "ResString.h"
 #include "AnimationManager.h"
-#include "KeyboardOverlayD2D.h"
-#include "MouseOverlay.h"
 #include "MagnifierWindow.h"
 #include <shellapi.h>
 #include <vector>
@@ -36,11 +34,10 @@
 #define ZOOM_HOTKEY 101
 #define LENS_HOTKEY 102
 
-#define TIMER_ID_DRAW           101
-#define TIMER_ID_ZOOM           102
-#define TIMER_ID_FADE           103
-#define TIMER_ID_LENS           104
-#define TIMER_OVERLAY_POSITIONS 105
+#define TIMER_ID_DRAW 101
+#define TIMER_ID_ZOOM 102
+#define TIMER_ID_FADE 103
+#define TIMER_ID_LENS 104
 
 #define LINE_ALPHA 100
 
@@ -52,32 +49,6 @@ enum class LineType
     Rectangle,
     Ellipse,
     Text
-};
-
-enum class OverlayPosition
-{
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight
-};
-
-class WndPositions
-{
-public:
-    WndPositions(HWND hWnd, int x, int y, int cx, int cy)
-        : hWnd(hWnd)
-        , x(x)
-        , y(y)
-        , cx(cx)
-        , cy(cy)
-    {
-    }
-    HWND hWnd = nullptr;
-    int  x    = 0;
-    int  y    = 0;
-    int  cx   = 0;
-    int  cy   = 0;
 };
 
 class DrawLine
@@ -165,15 +136,11 @@ protected:
     HCURSOR CreateDrawCursor(COLORREF color, int penwidth);
 
     static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
-    static BOOL CALLBACK ColorDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD          HotKeyControl2HotKey(WORD hk);
     static WORD          HotKey2HotKeyControl(WORD hk);
-    static LRESULT       LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
-    static LRESULT       LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 
-    void        RegisterHotKeys();
-    bool        UpdateCursor();
-    static void ClearOutdatedPopupWindows();
+    void RegisterHotKeys();
+    bool UpdateCursor();
 
 protected:
     NOTIFYICONDATA niData;
@@ -212,24 +179,7 @@ protected:
     AnimationVariable    m_animVarZoom;
     std::deque<DrawLine> m_drawLines;
 
-    static HHOOK  m_hKeyboardHook;
-    static HHOOK  m_hMouseHook;
-    static DWORD  m_lastHookTime;
-    static POINT  m_lastHookPoint;
-    static WPARAM m_lastHookMsg;
-    //static CKeyboardOverlayWnd       m_infoOverlay;
-    static std::unique_ptr<CKeyboardOverlayWndD2D>             m_infoOverlay;
-    static CMouseOverlayWnd                                    m_mouseOverlay;
-    static CMagnifierWindow                                    m_magnifierWindow;
-    static bool                                                m_bLensMode;
-    static bool                                                m_bMouseVisuals;
-    static bool                                                m_bMouseClicks;
-    static COLORREF                                            m_mvLColor;
-    static COLORREF                                            m_mvMColor;
-    static COLORREF                                            m_mvRColor;
-    static std::vector<std::wstring>                           m_keySequence;
-    static std::deque<std::unique_ptr<CKeyboardOverlayWndD2D>> m_overlayWnds;
-    static OverlayPosition                                     m_overlayPosition;
-    static HWND                                                m_mainWnd;
-    static std::vector<WndPositions>                           m_wndPositions;
+    static CMagnifierWindow m_magnifierWindow;
+    static bool             m_bLensMode;
+    static HWND             m_mainWnd;
 };

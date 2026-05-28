@@ -21,7 +21,8 @@
 #include "DemoHelper.h"
 #include "MainWindow.h"
 #include "IniSettings.h"
-#include "ColorDlg.h"
+#include <commctrl.h>
+#include <shellapi.h>
 
 BOOL CALLBACK CMainWindow::OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -29,23 +30,15 @@ BOOL CALLBACK CMainWindow::OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wPa
     {
         case WM_INITDIALOG:
         {
-            auto zoom            = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"zoom", 0x231));
-            auto draw            = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"draw", 0x232));
-            auto lens            = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"lens", 0x233));
-            auto allMonitors     = CIniSettings::Instance().GetInt64(L"Misc", L"allmonitors", 0);
-            auto fadeSeconds     = CIniSettings::Instance().GetInt64(L"Draw", L"fadeseconds", 0);
-            auto keyHook         = CIniSettings::Instance().GetInt64(L"Hooks", L"keyboard", 1);
-            auto mouseHook       = CIniSettings::Instance().GetInt64(L"Hooks", L"mouse", 1);
-            auto mouseVisual     = CIniSettings::Instance().GetInt64(L"Misc", L"mousevisual", 1);
-            auto overlayPosition = static_cast<OverlayPosition>(CIniSettings::Instance().GetInt64(L"Misc", L"OvlPosition", static_cast<int64_t>(OverlayPosition::BottomRight)));
+            auto zoom        = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"zoom", 0x231));
+            auto draw        = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"draw", 0x232));
+            auto lens        = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"lens", 0x233));
+            auto allMonitors = CIniSettings::Instance().GetInt64(L"Misc", L"allmonitors", 0);
+            auto fadeSeconds = CIniSettings::Instance().GetInt64(L"Draw", L"fadeseconds", 0);
             SendMessage(GetDlgItem(hwndDlg, IDC_HOTKEY_ZOOMMODE), HKM_SETHOTKEY, static_cast<WPARAM>(zoom), 0);
             SendMessage(GetDlgItem(hwndDlg, IDC_HOTKEY_DRAWMODE), HKM_SETHOTKEY, static_cast<WPARAM>(draw), 0);
             SendMessage(GetDlgItem(hwndDlg, IDC_HOTKEY_LENSMODE), HKM_SETHOTKEY, static_cast<WPARAM>(lens), 0);
             CheckRadioButton(hwndDlg, IDC_CURRENTMONITOR, IDC_ALLMONITORS, allMonitors ? IDC_ALLMONITORS : IDC_CURRENTMONITOR);
-            CheckDlgButton(hwndDlg, IDC_KEYHOOK, keyHook ? BST_CHECKED : BST_UNCHECKED);
-            CheckDlgButton(hwndDlg, IDC_MOUSEHOOK, mouseHook ? BST_CHECKED : BST_UNCHECKED);
-            CheckDlgButton(hwndDlg, IDC_MOUSEVISUALS, mouseVisual ? BST_CHECKED : BST_UNCHECKED);
-            CheckRadioButton(hwndDlg, IDC_POS_TOPLEFT, IDC_POS_BOTTOMRIGHT, static_cast<int>(overlayPosition) + IDC_POS_TOPLEFT);
             TCHAR buffer[128] = {0};
             LoadString(g_hInstance, IDS_WEBLINK, buffer, _countof(buffer));
             _stprintf_s(buffer, _countof(buffer), _T("%ld"), static_cast<DWORD>(fadeSeconds));
@@ -83,29 +76,12 @@ BOOL CALLBACK CMainWindow::OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wPa
                     GetWindowText(GetDlgItem(hwndDlg, IDC_FADESECONDS), buffer, _countof(buffer));
                     CIniSettings::Instance().SetString(L"Draw", L"fadeseconds", buffer);
                     CIniSettings::Instance().SetInt64(L"Misc", L"allmonitors", IsDlgButtonChecked(hwndDlg, IDC_ALLMONITORS) ? 1 : 0);
-                    CIniSettings::Instance().SetInt64(L"Hooks", L"keyboard", IsDlgButtonChecked(hwndDlg, IDC_KEYHOOK) ? 1 : 0);
-                    CIniSettings::Instance().SetInt64(L"Hooks", L"mouse", IsDlgButtonChecked(hwndDlg, IDC_MOUSEHOOK) ? 1 : 0);
-                    CIniSettings::Instance().SetInt64(L"Misc", L"mousevisual", IsDlgButtonChecked(hwndDlg, IDC_MOUSEVISUALS) ? 1 : 0);
-                    if (IsDlgButtonChecked(hwndDlg, IDC_POS_TOPLEFT))
-                        CIniSettings::Instance().SetInt64(L"Misc", L"OvlPosition", static_cast<int64_t>(OverlayPosition::TopLeft));
-                    if (IsDlgButtonChecked(hwndDlg, IDC_POS_TOPRIGHT))
-                        CIniSettings::Instance().SetInt64(L"Misc", L"OvlPosition", static_cast<int64_t>(OverlayPosition::TopRight));
-                    if (IsDlgButtonChecked(hwndDlg, IDC_POS_BOTTOMLEFT))
-                        CIniSettings::Instance().SetInt64(L"Misc", L"OvlPosition", static_cast<int64_t>(OverlayPosition::BottomLeft));
-                    if (IsDlgButtonChecked(hwndDlg, IDC_POS_BOTTOMRIGHT))
-                        CIniSettings::Instance().SetInt64(L"Misc", L"OvlPosition", static_cast<int64_t>(OverlayPosition::BottomRight));
                     CIniSettings::Instance().Save();
                 }
                     [[fallthrough]];
                 case IDCANCEL:
                     EndDialog(hwndDlg, wParam);
                     return TRUE;
-                case IDC_CONF_COLORS:
-                {
-                    CColorDlg dlg(hwndDlg);
-                    dlg.DoModal(g_hResource, IDD_COLORS, hwndDlg);
-                }
-                break;
             }
             break;
         case WM_NOTIFY:
