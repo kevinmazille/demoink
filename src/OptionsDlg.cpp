@@ -33,10 +33,8 @@ BOOL CALLBACK CMainWindow::OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wPa
             auto draw        = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"draw", 0x232));
             auto allMonitors = CIniSettings::Instance().GetInt64(L"Misc", L"allmonitors", 0);
             auto fadeSeconds = CIniSettings::Instance().GetInt64(L"Draw", L"fadeseconds", 0);
-            auto theme       = CIniSettings::Instance().GetInt64(L"Draw", L"theme", 0);
             SendMessage(GetDlgItem(hwndDlg, IDC_HOTKEY_DRAWMODE), HKM_SETHOTKEY, static_cast<WPARAM>(draw), 0);
             CheckRadioButton(hwndDlg, IDC_CURRENTMONITOR, IDC_ALLMONITORS, allMonitors ? IDC_ALLMONITORS : IDC_CURRENTMONITOR);
-            CheckRadioButton(hwndDlg, IDC_THEME_LIGHT, IDC_THEME_DARK, theme == 1 ? IDC_THEME_DARK : IDC_THEME_LIGHT);
             TCHAR buffer[128] = {0};
             LoadString(g_hInstance, IDS_WEBLINK, buffer, _countof(buffer));
             _stprintf_s(buffer, _countof(buffer), _T("%ld"), static_cast<DWORD>(fadeSeconds));
@@ -70,7 +68,6 @@ BOOL CALLBACK CMainWindow::OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wPa
                     GetWindowText(GetDlgItem(hwndDlg, IDC_FADESECONDS), buffer, _countof(buffer));
                     CIniSettings::Instance().SetString(L"Draw", L"fadeseconds", buffer);
                     CIniSettings::Instance().SetInt64(L"Misc", L"allmonitors", IsDlgButtonChecked(hwndDlg, IDC_ALLMONITORS) ? 1 : 0);
-                    CIniSettings::Instance().SetInt64(L"Draw", L"theme", IsDlgButtonChecked(hwndDlg, IDC_THEME_DARK) ? 1 : 0);
                     CIniSettings::Instance().Save();
                 }
                     [[fallthrough]];

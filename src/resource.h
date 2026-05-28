@@ -20,8 +20,6 @@
 #define IDC_CURRENTMONITOR              1008
 #define IDC_ALLMONITORS                 1009
 #define IDC_SYSLINK1                    1012
-#define IDC_THEME_LIGHT                 1013
-#define IDC_THEME_DARK                  1014
 #define ID_TRAYCONTEXT_OPTIONS          32771
 #define ID_TRAYCONTEXT_ABOUT            32772
 #define ID_TRAYCONTEXT_DRAW             32774
@@ -35,7 +33,6 @@
 #define ID_CMD_QUICKTOMARKER            32782
 #define ID_CMD_TOGGLEROP                32785
 #define ID_TRAYCONTEXT_HELP             32790
-#define ID_CMD_CLEARSCREEN              32791
 #define ID_CMD_COLOR1                   32793
 #define ID_CMD_COLOR2                   32794
 #define ID_CMD_COLOR3                   32795

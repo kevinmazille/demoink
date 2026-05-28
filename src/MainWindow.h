@@ -47,8 +47,9 @@ enum class LineType
 
 enum class Theme
 {
-    Light = 0,
-    Dark  = 1
+    Transparent = 0,
+    Light       = 1,
+    Dark        = 2
 };
 
 class DrawLine
@@ -112,11 +113,11 @@ protected:
     /// Handles all the WM_COMMAND window messages (e.g. menu commands)
     LRESULT DoCommand(int id);
 
-    bool     StartPresentationMode();
-    bool     EndPresentationMode();
-    HCURSOR  CreateDrawCursor(COLORREF color, int penwidth);
-    void     ApplyTheme();
-    COLORREF BackgroundColor() const { return m_theme == Theme::Dark ? RGB(0, 0, 0) : RGB(255, 255, 255); }
+    bool    StartPresentationMode();
+    bool    EndPresentationMode();
+    HCURSOR CreateDrawCursor(COLORREF color, int penwidth);
+    void    ApplyTheme();
+    void    PaintThemeBackground();
 
     static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD          HotKeyControl2HotKey(WORD hk);
@@ -130,6 +131,9 @@ protected:
     HDC            hDesktopCompatibleDC;
     HBITMAP        hDesktopCompatibleBitmap;
     HBITMAP        hOldBmp;
+    HDC            m_desktopSnapshotDC     = nullptr;
+    HBITMAP        m_desktopSnapshotBitmap = nullptr;
+    HBITMAP        m_desktopSnapshotOldBmp = nullptr;
 
     bool m_bDrawing;
 

@@ -210,33 +210,26 @@ LRESULT CMainWindow::DoCommand(int id)
                 RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
             }
             break;
-        case ID_CMD_CLEARSCREEN:
-        {
-            RECT rect;
-            rect.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
-            rect.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
-            rect.right  = rect.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
-            rect.bottom = rect.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
-            HBRUSH hBrush = CreateSolidBrush(BackgroundColor());
-            FillRect(hDesktopCompatibleDC, &rect, hBrush);
-            DeleteObject(hBrush);
-            m_bDrawing = false;
-            m_drawLines.clear();
-            RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-        }
-        break;
         case ID_CMD_TOGGLETHEME:
         {
-            m_theme = (m_theme == Theme::Light) ? Theme::Dark : Theme::Light;
-            ApplyTheme();
-            RECT rect;
-            rect.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
-            rect.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
-            rect.right  = rect.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
-            rect.bottom = rect.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
-            HBRUSH hBrush = CreateSolidBrush(BackgroundColor());
-            FillRect(hDesktopCompatibleDC, &rect, hBrush);
-            DeleteObject(hBrush);
+            if (m_theme == Theme::Transparent)
+            {
+                // First B press: leave the desktop snapshot, wipe annotations,
+                // start fresh on a Light canvas. After that B only toggles
+                // Light ↔ Dark.
+                m_theme    = Theme::Light;
+                m_bDrawing = false;
+                m_drawLines.clear();
+                ApplyTheme();
+            }
+            else
+            {
+                m_theme = (m_theme == Theme::Light) ? Theme::Dark : Theme::Light;
+                ApplyTheme();
+                for (auto& line : m_drawLines)
+                    line.alpha = m_currentAlpha;
+            }
+            PaintThemeBackground();
             UpdateCursor();
             RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
         }

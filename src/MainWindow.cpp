@@ -89,7 +89,6 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
             RegisterHotKeys();
             m_colorIndex      = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"colorindex", 1));
             m_currentPenWidth = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"currentpenwidth", 6));
-            m_theme           = static_cast<Theme>(CIniSettings::Instance().GetInt64(L"Draw", L"theme", static_cast<int64_t>(Theme::Light)));
             ApplyTheme();
         }
         break;
@@ -479,6 +478,8 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
 
 bool CMainWindow::StartPresentationMode()
 {
+    m_theme = Theme::Transparent;
+    ApplyTheme();
     int          nScreenWidth  = 0;
     int          nScreenHeight = 0;
     std::wstring devName;
@@ -517,6 +518,15 @@ bool CMainWindow::StartPresentationMode()
            hDesktopDC, allMonitors ? m_rcScreen.left : 0, allMonitors ? m_rcScreen.top : 0,
            SRCCOPY | CAPTUREBLT);
 
+    // Keep a pristine snapshot of the desktop so we can restore it when
+    // cycling back to the Transparent theme. We can't recapture from the
+    // live desktop later because our own window would be visible.
+    m_desktopSnapshotDC     = CreateCompatibleDC(hDesktopDC);
+    m_desktopSnapshotBitmap = CreateCompatibleBitmap(hDesktopDC, nScreenWidth, nScreenHeight);
+    m_desktopSnapshotOldBmp = static_cast<HBITMAP>(SelectObject(m_desktopSnapshotDC, m_desktopSnapshotBitmap));
+    BitBlt(m_desktopSnapshotDC, 0, 0, nScreenWidth, nScreenHeight,
+           hDesktopCompatibleDC, 0, 0, SRCCOPY);
+
 #ifdef _DEBUG
     auto topWnd = HWND_TOP;
 #else
@@ -548,6 +558,15 @@ bool CMainWindow::EndPresentationMode()
     SelectObject(hDesktopCompatibleDC, hOldBmp);
     DeleteObject(hDesktopCompatibleBitmap);
     DeleteDC(hDesktopCompatibleDC);
+    if (m_desktopSnapshotDC)
+    {
+        SelectObject(m_desktopSnapshotDC, m_desktopSnapshotOldBmp);
+        DeleteObject(m_desktopSnapshotBitmap);
+        DeleteDC(m_desktopSnapshotDC);
+        m_desktopSnapshotDC     = nullptr;
+        m_desktopSnapshotBitmap = nullptr;
+        m_desktopSnapshotOldBmp = nullptr;
+    }
     m_drawLines.clear();
     m_bDrawing  = false;
     m_bTextMode = false;
@@ -559,7 +578,6 @@ bool CMainWindow::EndPresentationMode()
     }
     CIniSettings::Instance().SetInt64(L"Draw", L"colorindex", m_colorIndex);
     CIniSettings::Instance().SetInt64(L"Draw", L"currentpenwidth", m_currentPenWidth);
-    CIniSettings::Instance().SetInt64(L"Draw", L"theme", static_cast<int64_t>(m_theme));
     return true;
 }
 
@@ -587,29 +605,57 @@ void CMainWindow::ApplyTheme()
 {
     if (m_theme == Theme::Dark)
     {
-        m_colors[0] = RGB(255, 255, 0);   // yellow
-        m_colors[1] = RGB(255, 100, 100); // light red
-        m_colors[2] = RGB(255, 165, 0);   // orange
-        m_colors[3] = RGB(100, 255, 100); // light green
-        m_colors[4] = RGB(0, 255, 255);   // cyan
-        m_colors[5] = RGB(100, 180, 255); // light blue
-        m_colors[6] = RGB(255, 100, 255); // magenta
-        m_colors[7] = RGB(255, 255, 255); // white
-        m_colors[8] = RGB(200, 200, 200); // light gray
-        m_colors[9] = RGB(180, 255, 0);   // lime
+        // Palette tuned for legibility on a black background:
+        // 1-2-3 are three maximally distinct primaries (warm/warm/cool) for
+        // quick switching; 4-5-6 are softer variants of each primary;
+        // 7-8-9 are neutrals + an accent green.
+        m_colors[0]    = RGB(255, 255, 0);   // yellow (marker)
+        m_colors[1]    = RGB(255, 140, 0);   // orange — default
+        m_colors[2]    = RGB(255, 90, 90);   // light red
+        m_colors[3]    = RGB(0, 220, 255);   // cyan (pure blue is unreadable on black)
+        m_colors[4]    = RGB(220, 150, 80);  // amber (soft orange)
+        m_colors[5]    = RGB(255, 120, 150); // pink (soft red)
+        m_colors[6]    = RGB(140, 180, 255); // sky blue (soft cyan)
+        m_colors[7]    = RGB(255, 255, 255); // white
+        m_colors[8]    = RGB(180, 180, 180); // light gray
+        m_colors[9]    = RGB(120, 255, 120); // green accent
+        m_currentAlpha = 255;
     }
     else
     {
-        m_colors[0] = RGB(255, 255, 0);
-        m_colors[1] = RGB(255, 0, 0);
-        m_colors[2] = RGB(150, 0, 0);
-        m_colors[3] = RGB(0, 255, 0);
-        m_colors[4] = RGB(0, 150, 0);
-        m_colors[5] = RGB(0, 0, 255);
-        m_colors[6] = RGB(0, 0, 150);
-        m_colors[7] = RGB(0, 0, 0);
-        m_colors[8] = RGB(150, 150, 150);
-        m_colors[9] = RGB(0, 255, 255);
+        // Light and Transparent share the same palette and alpha; only the
+        // background fill differs (handled by the caller).
+        m_colors[0]    = RGB(255, 255, 0);   // yellow (marker)
+        m_colors[1]    = RGB(255, 0, 0);     // red — default
+        m_colors[2]    = RGB(0, 80, 220);    // blue
+        m_colors[3]    = RGB(0, 170, 0);     // green
+        m_colors[4]    = RGB(150, 0, 0);     // dark red
+        m_colors[5]    = RGB(0, 0, 150);     // dark blue
+        m_colors[6]    = RGB(0, 100, 0);     // dark green
+        m_colors[7]    = RGB(0, 0, 0);       // black
+        m_colors[8]    = RGB(120, 120, 120); // gray
+        m_colors[9]    = RGB(200, 0, 200);   // magenta accent
+        m_currentAlpha = LINE_ALPHA;
     }
 }
 
+void CMainWindow::PaintThemeBackground()
+{
+    int cx = m_rcScreen.right - m_rcScreen.left;
+    int cy = m_rcScreen.bottom - m_rcScreen.top;
+
+    if (m_theme == Theme::Transparent && m_desktopSnapshotDC)
+    {
+        // Restore from the snapshot taken at draw start; recapturing now
+        // would include our own painted background.
+        BitBlt(hDesktopCompatibleDC, 0, 0, cx, cy, m_desktopSnapshotDC, 0, 0, SRCCOPY);
+    }
+    else
+    {
+        COLORREF bg     = (m_theme == Theme::Dark) ? RGB(0, 0, 0) : RGB(255, 255, 255);
+        RECT     rect   = {0, 0, cx, cy};
+        HBRUSH   hBrush = CreateSolidBrush(bg);
+        FillRect(hDesktopCompatibleDC, &rect, hBrush);
+        DeleteObject(hBrush);
+    }
+}
