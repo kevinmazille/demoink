@@ -48,9 +48,6 @@
     <ClInclude Include="..\sktoolslib\DebugOutput.h">
       <Filter>sktoolslib</Filter>
     </ClInclude>
-    <ClInclude Include="..\sktoolslib\AnimationManager.h">
-      <Filter>sktoolslib</Filter>
-    </ClInclude>
     <ClInclude Include="..\sktoolslib\SimpleIni.h">
       <Filter>sktoolslib</Filter>
     </ClInclude>
@@ -140,9 +137,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\sktoolslib\DebugOutput.cpp">
-      <Filter>sktoolslib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\sktoolslib\AnimationManager.cpp">
       <Filter>sktoolslib</Filter>
     </ClCompile>
     <ClCompile Include="..\sktoolslib\IniSettings.cpp">

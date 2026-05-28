@@ -22,15 +22,21 @@ git submodule update --init --recursive
 
 Application Win32 C++ pure (pas de MFC, pas de Qt).
 
+Depuis la v2.3.0 (`feature/strip-down`), l'app a été élaguée pour
+ne garder QUE le mode Draw (+ mode Texte). Les modes Zoom, Lens,
+inline-zoom, ainsi que tous les overlays clavier/souris et le ripple
+de clic ont été retirés.
+
 - **Point d'entrée** : `src/DemoHelper.cpp` (`wWinMain`)
-- **Cœur** : `src/MainWindow.cpp/h` — gère les 3 modes (Draw/Zoom/Lens),
-  les hooks clavier/souris globaux, le rendu GDI+
+- **Cœur** : `src/MainWindow.cpp/h` — gère le mode Draw + mode Texte,
+  rendu GDI+
 - **Commandes** : `src/Commands.cpp` — handlers pour les actions
-  (undo, couleurs, épaisseur, etc.) déclenchées par accélérateurs clavier
+  (undo, couleurs, épaisseur, texte, etc.) via accélérateurs clavier
+- **Options dialog** : `src/OptionsDlg.cpp` — réduit à hotkey draw,
+  fade seconds, monitor selection
 - **Sous-module** : `sktoolslib/` — utilitaires (BaseWindow, IniSettings,
-  AnimationManager, etc.)
-- **Rendu** : GDI+ pour le dessin, Direct2D pour les overlays texte
-  (clavier/souris affichés en surimpression)
+  hyperlink, etc.)
+- **Rendu** : GDI+ pour tout le dessin (lignes, formes, texte)
 
 ## Mode Draw — détails clés
 
@@ -53,18 +59,24 @@ Voir [docs/modifications.md](docs/modifications.md).
 
 ## État actuel — pour reprendre
 
-**Version courante : 2.2.0** — mode texte intégré à `main` du fork.
+**Version courante : 2.3.0** — strip-down mergé dans `main`.
 
 Acquis :
-- Mode texte (touche `Q`) implémenté et validé interactivement
-  (voir [docs/modifications.md](docs/modifications.md#réalisé--mode-texte-featuretext-mode--mergé-dans-main-v220))
+- Mode texte (touche `Q`) implémenté en v2.2.0
+- Strip-down v2.3.0 : retiré Zoom, Lens, inline-zoom, overlays
+  clavier/souris, ripple visualizer, hooks bas-niveau, dialog
+  Configure colors. Exe passé de ~400 KB à ~346 KB.
 - Build MSVC v143 vérifié OK (`build.bat` produit
-  `bin/Release/x64/DemoHelper.exe` ~400 KB)
+  `bin/Release/x64/DemoHelper.exe`)
 - Setup git : `origin` = fork perso, `upstream` = stefankueng/demohelper
-- Branche `feature/text-mode` conservée pour historique, fusionnée dans `main`
+- Branches `feature/text-mode` et `feature/strip-down` conservées,
+  fusionnées dans `main`
 
-Prochaine étape : à décider — soit nouvelle feature dans une branche dédiée,
-soit polish du mode texte (positionnement, multi-lignes, etc.).
+Prochaine étape (idées) :
+- Background custom au clear (`c`) : couleur configurable, ou image
+- Auto-screenshot à l'Esc (sortie du mode draw) → dossier dédié
+- Intégration Google Meet (titre de la fenêtre, MCP) pour ranger les
+  screenshots par client/réunion
 
 ## Pièges à connaître (env de l'utilisateur)
 

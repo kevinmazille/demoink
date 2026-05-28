@@ -92,6 +92,58 @@ d'accélérateurs est court-circuitée tant que `m_bTextMode == true`.
 - `m_bTextMode` est remis à `false` dans `EndPresentationMode()` pour
   garantir un état propre à chaque sortie du mode draw.
 
+## Réalisé : Strip-down (`feature/strip-down` → mergé dans main, v2.3.0)
+
+L'app a été élaguée pour devenir un overlay de dessin pur. Tout ce qui
+n'était pas le mode Draw a été retiré.
+
+### Retiré
+
+- **Zoom mode** : raccourci global, animation, `m_bZooming`,
+  `StartZoomingMode`/`EndZoomingMode`/`DrawZoom`, `ID_CMD_ACCEPT`
+- **Lens / Live mode** : `m_bLensMode`, `m_magnifierWindow`,
+  `MagnifierWindow.cpp/h`, `RectSelectionWnd.cpp/h`,
+  `MagInitialize`/`MagUninitialize`
+- **Inline zoom** (`z` pendant le draw) : `m_bInlineZoom`,
+  `StartInlineZoom`, `m_ptInlineZoom*`
+- **Overlay keystrokes** : `KeyboardOverlay.cpp/h`,
+  `KeyboardOverlayD2D.cpp/h`, `m_infoOverlay`, `m_keySequence`,
+  `m_overlayWnds`, `OverlayPosition`, `WndPositions`
+- **Overlay mouseclicks** (log) : `MouseOverlay.cpp/h`,
+  `m_mouseOverlay`, `m_bMouseClicks`
+- **Visualize mouseclicks** (ripple coloré) : `m_bMouseVisuals`,
+  `m_mvL/M/RColor`, dialog `IDD_COLORS`, `ColorButton.cpp/h`,
+  `ColorDlg.cpp/h`
+- **Hooks bas-niveau** : `LowLevelKeyboardProc`, `LowLevelMouseProc`,
+  `m_hKeyboardHook`, `m_hMouseHook`, `m_lastHook*`
+- **AnimationManager** : plus utilisé (était lié au zoom)
+- **Tray menu** : entrée "Zoom"
+- **Options dialog** : hotkeys Zoom/Lens, "Show keystrokes/mouseclicks",
+  "Visualize mouseclicks", radios position overlay, "Configure colors"
+
+### Conservé
+
+- Mode Draw complet (couleurs, formes, marker, undo, clear, etc.)
+- Mode Texte (v2.2.0)
+- Tray icon avec Draw / Options / Help / Exit
+- Options dialog (réduit à hotkey draw, fade seconds, monitor selection)
+- Help dialog mis à jour
+
+### Impact build
+
+- Exe : ~400 KB → **~346 KB** (-54 KB / -13 %)
+- Lignes : ~2800 lignes retirées sur 4 commits
+- 12 fichiers .cpp/.h supprimés
+- Compilation : ~1900 fonctions → ~1060 fonctions
+
 ## Idées futures
 
-(à remplir au fur et à mesure)
+- **Background custom au clear** : remplacer le blanc par défaut
+  (`COLOR_WINDOW`) par une couleur configurable. Extension : permettre
+  une image de fond.
+- **Auto-screenshot à l'Esc** : quand on sort du mode draw, capturer
+  l'écran annoté et le sauver dans un dossier dédié. Implémentation
+  basique sans MCP : dossier fixe + nom horodaté.
+- **Intégration Google Meet** : récupérer le titre de la fenêtre
+  Chrome/Meet active pour préfixer les screenshots avec le nom du
+  meeting / du client. Probablement via un MCP dédié.

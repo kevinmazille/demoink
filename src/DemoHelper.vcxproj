@@ -203,7 +203,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\sktoolslib\AeroGlass.cpp" />
-    <ClCompile Include="..\sktoolslib\AnimationManager.cpp" />
     <ClCompile Include="..\sktoolslib\BaseDialog.cpp" />
     <ClCompile Include="..\sktoolslib\BaseWindow.cpp" />
     <ClCompile Include="..\sktoolslib\BaseWindowD2D.cpp" />
@@ -225,7 +224,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\sktoolslib\AeroGlass.h" />
-    <ClInclude Include="..\sktoolslib\AnimationManager.h" />
     <ClInclude Include="..\sktoolslib\BaseDialog.h" />
     <ClInclude Include="..\sktoolslib\BaseWindow.h" />
     <ClInclude Include="..\sktoolslib\BaseWindowD2D.h" />
