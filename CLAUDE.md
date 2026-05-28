@@ -51,6 +51,41 @@ Les raccourcis du mode draw sont définis dans la table d'accélérateurs Win32
 
 Voir [docs/modifications.md](docs/modifications.md).
 
+## État actuel — pour reprendre
+
+**Branche active : `feature/text-mode`** (créée, vide pour l'instant —
+prête à recevoir l'implémentation du mode texte).
+
+Acquis :
+- Build MSVC v143 vérifié OK (`build.bat` produit
+  `bin/Release/x64/DemoHelper.exe` ~400 KB)
+- Exe testé en interactif : tous les modes (Draw/Zoom/Lens) fonctionnent
+- Setup git : `origin` = fork perso, `upstream` = stefankueng/demohelper
+- Commit initial sur `main` poussé sur le fork (`fac329b`)
+- Code source intact : aucune modification appliquée à ce stade
+
+Prochaine étape : implémenter le mode texte selon le plan dans
+[docs/modifications.md](docs/modifications.md#en-cours--mode-texte-featuretext-mode).
+À décider à la reprise : implémentation en un seul commit
+(plus rapide) ou par paliers avec build à chaque étape (plus sûr).
+
+## Pièges à connaître (env de l'utilisateur)
+
+**Comptes GitHub multiples** : la machine a deux comptes `gh` configurés
+(`kevinmazille` perso, `kmazille_sfemu` pro). Pour ce repo perso :
+- Le remote `origin` embarque `kevinmazille@` dans l'URL
+  (`https://kevinmazille@github.com/...`) pour que Git Credential Manager
+  choisisse automatiquement le bon token sans demander.
+- Identité git du commit : configurée via `~/.gitconfig` global (perso),
+  `includeIf` bascule sur l'identité pro pour les repos sous
+  `claude-projects/pro/`.
+- Avant tout `gh repo …` perso : vérifier `gh auth status` et au besoin
+  `gh auth switch --user kevinmazille`.
+
+**Build** : Visual Studio 2022 Community avec workload C++ desktop
+installé. Si erreur `cl.exe not found`, relancer
+`vs_installer.exe modify --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64`.
+
 ## Remotes git
 
 - `origin` → fork personnel (`kevinmazille/demohelper`)
