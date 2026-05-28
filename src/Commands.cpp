@@ -212,17 +212,32 @@ LRESULT CMainWindow::DoCommand(int id)
             break;
         case ID_CMD_CLEARSCREEN:
         {
-            // clear the whole screen for drawing on it
             RECT rect;
             rect.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
             rect.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
             rect.right  = rect.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
             rect.bottom = rect.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
-            SetBkColor(hDesktopCompatibleDC, ::GetSysColor(COLOR_WINDOW));
-            ::ExtTextOut(hDesktopCompatibleDC, 0, 0, ETO_OPAQUE, &rect, nullptr, 0, nullptr);
-            // also clear all lines already drawn
+            HBRUSH hBrush = CreateSolidBrush(BackgroundColor());
+            FillRect(hDesktopCompatibleDC, &rect, hBrush);
+            DeleteObject(hBrush);
             m_bDrawing = false;
             m_drawLines.clear();
+            RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
+        }
+        break;
+        case ID_CMD_TOGGLETHEME:
+        {
+            m_theme = (m_theme == Theme::Light) ? Theme::Dark : Theme::Light;
+            ApplyTheme();
+            RECT rect;
+            rect.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
+            rect.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
+            rect.right  = rect.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+            rect.bottom = rect.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+            HBRUSH hBrush = CreateSolidBrush(BackgroundColor());
+            FillRect(hDesktopCompatibleDC, &rect, hBrush);
+            DeleteObject(hBrush);
+            UpdateCursor();
             RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
         }
         break;

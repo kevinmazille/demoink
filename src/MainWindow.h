@@ -45,6 +45,12 @@ enum class LineType
     Text
 };
 
+enum class Theme
+{
+    Light = 0,
+    Dark  = 1
+};
+
 class DrawLine
 {
 public:
@@ -91,16 +97,7 @@ public:
         , m_rcScreen({0})
     {
         SetWindowTitle(static_cast<LPCTSTR>(ResString(hResource, IDS_APP_TITLE)));
-        m_colors[0]   = RGB(255, 255, 0);
-        m_colors[1]   = RGB(255, 0, 0);
-        m_colors[2]   = RGB(150, 0, 0);
-        m_colors[3]   = RGB(0, 255, 0);
-        m_colors[4]   = RGB(0, 150, 0);
-        m_colors[5]   = RGB(0, 0, 255);
-        m_colors[6]   = RGB(0, 0, 150);
-        m_colors[7]   = RGB(0, 0, 0);
-        m_colors[8]   = RGB(150, 150, 150);
-        m_colors[9] = RGB(0, 255, 255);
+        ApplyTheme();
     };
     ~CMainWindow(){};
 
@@ -115,9 +112,11 @@ protected:
     /// Handles all the WM_COMMAND window messages (e.g. menu commands)
     LRESULT DoCommand(int id);
 
-    bool    StartPresentationMode();
-    bool    EndPresentationMode();
-    HCURSOR CreateDrawCursor(COLORREF color, int penwidth);
+    bool     StartPresentationMode();
+    bool     EndPresentationMode();
+    HCURSOR  CreateDrawCursor(COLORREF color, int penwidth);
+    void     ApplyTheme();
+    COLORREF BackgroundColor() const { return m_theme == Theme::Dark ? RGB(0, 0, 0) : RGB(255, 255, 255); }
 
     static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD          HotKeyControl2HotKey(WORD hk);
@@ -151,7 +150,8 @@ protected:
     int  m_oldColorIndex;
     BYTE m_oldAlpha;
 
-    bool m_bTextMode = false;
+    bool  m_bTextMode = false;
+    Theme m_theme     = Theme::Light;
 
     RECT                 m_rcScreen;
     std::deque<DrawLine> m_drawLines;

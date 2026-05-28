@@ -89,6 +89,8 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
             RegisterHotKeys();
             m_colorIndex      = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"colorindex", 1));
             m_currentPenWidth = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"currentpenwidth", 6));
+            m_theme           = static_cast<Theme>(CIniSettings::Instance().GetInt64(L"Draw", L"theme", static_cast<int64_t>(Theme::Light)));
+            ApplyTheme();
         }
         break;
         case WM_COMMAND:
@@ -557,6 +559,7 @@ bool CMainWindow::EndPresentationMode()
     }
     CIniSettings::Instance().SetInt64(L"Draw", L"colorindex", m_colorIndex);
     CIniSettings::Instance().SetInt64(L"Draw", L"currentpenwidth", m_currentPenWidth);
+    CIniSettings::Instance().SetInt64(L"Draw", L"theme", static_cast<int64_t>(m_theme));
     return true;
 }
 
@@ -578,5 +581,35 @@ bool CMainWindow::UpdateCursor()
         return true;
     }
     return false;
+}
+
+void CMainWindow::ApplyTheme()
+{
+    if (m_theme == Theme::Dark)
+    {
+        m_colors[0] = RGB(255, 255, 0);   // yellow
+        m_colors[1] = RGB(255, 100, 100); // light red
+        m_colors[2] = RGB(255, 165, 0);   // orange
+        m_colors[3] = RGB(100, 255, 100); // light green
+        m_colors[4] = RGB(0, 255, 255);   // cyan
+        m_colors[5] = RGB(100, 180, 255); // light blue
+        m_colors[6] = RGB(255, 100, 255); // magenta
+        m_colors[7] = RGB(255, 255, 255); // white
+        m_colors[8] = RGB(200, 200, 200); // light gray
+        m_colors[9] = RGB(180, 255, 0);   // lime
+    }
+    else
+    {
+        m_colors[0] = RGB(255, 255, 0);
+        m_colors[1] = RGB(255, 0, 0);
+        m_colors[2] = RGB(150, 0, 0);
+        m_colors[3] = RGB(0, 255, 0);
+        m_colors[4] = RGB(0, 150, 0);
+        m_colors[5] = RGB(0, 0, 255);
+        m_colors[6] = RGB(0, 0, 150);
+        m_colors[7] = RGB(0, 0, 0);
+        m_colors[8] = RGB(150, 150, 150);
+        m_colors[9] = RGB(0, 255, 255);
+    }
 }
 
