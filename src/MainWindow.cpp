@@ -735,4 +735,38 @@ void CMainWindow::PaintBoardFrame()
         graphics.DrawLine(&tickPen, X(1860), Y(1046), X(1860), Y(1010));
         graphics.DrawLine(&tickPen, X(1886), Y(1020), X(1850), Y(1020));
     }
+    else if (m_boardStyle == BoardStyle::FrameB)
+    {
+        // Dark slate board: lighter bevelled frame, radial slate canvas,
+        // clay "tray" baseline. The plain Dark theme already filled the
+        // background black, so we paint the full decor here.
+        Gdiplus::RectF full(0.0f, 0.0f, static_cast<Gdiplus::REAL>(cx), static_cast<Gdiplus::REAL>(cy));
+
+        // Outer frame, vertical gradient.
+        Gdiplus::LinearGradientBrush frame(full,
+                                           Gdiplus::Color(0xFF, 0x3A, 0x3D, 0x42),
+                                           Gdiplus::Color(0xFF, 0x2C, 0x2E, 0x33),
+                                           Gdiplus::LinearGradientModeVertical);
+        graphics.FillRectangle(&frame, full);
+
+        // Inner bevel highlight.
+        Gdiplus::Pen bevelPen(Gdiplus::Color(0xFF, 0x4A, 0x4D, 0x53), W(2));
+        graphics.DrawRectangle(&bevelPen, X(22), Y(22), X(1920) - X(44), Y(1080) - Y(44));
+
+        // Slate canvas (~95%), radial gradient centre-biased upward.
+        Gdiplus::RectF canvas(X(40), Y(40), X(1840), Y(1000));
+        Gdiplus::GraphicsPath canvasPath;
+        canvasPath.AddRectangle(canvas);
+        Gdiplus::PathGradientBrush slate(&canvasPath);
+        slate.SetCenterPoint(Gdiplus::PointF(X(960), Y(454)));
+        slate.SetCenterColor(Gdiplus::Color(0xFF, 0x2A, 0x2D, 0x31));
+        Gdiplus::Color surround(0xFF, 0x20, 0x22, 0x25);
+        int surroundCount = 1;
+        slate.SetSurroundColors(&surround, &surroundCount);
+        graphics.FillRectangle(&slate, canvas);
+
+        // Clay tray baseline at the bottom of the board.
+        Gdiplus::SolidBrush tray(Gdiplus::Color(0xD9, 0xD9, 0x77, 0x57));
+        graphics.FillRectangle(&tray, X(40), Y(1028), X(1840), Y(12));
+    }
 }
