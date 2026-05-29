@@ -72,8 +72,14 @@ Acquis :
 - Branches `feature/text-mode` et `feature/strip-down` conservées,
   fusionnées dans `main`
 
+- Thèmes Light/Dark + cycle Transparent via touche `B` (palettes
+  parallèles, recolore les annotations).
+- Cadres "tableau" via touche `N` (`feature/board-frames`) : cadre A
+  (whiteboard clair) ↔ cadre B (slate sombre), dessinés en vectoriel
+  GDI+ dans `PaintBoardFrame()`. Même logique de cycle que `B`.
+  Concepts de référence dans `background image/`.
+
 Prochaine étape (idées) :
-- Background custom au clear (`c`) : couleur configurable, ou image
 - Auto-screenshot à l'Esc (sortie du mode draw) → dossier dédié
 - Intégration Google Meet (titre de la fenêtre, MCP) pour ranger les
   screenshots par client/réunion

@@ -136,6 +136,41 @@ n'était pas le mode Draw a été retiré.
 - 12 fichiers .cpp/.h supprimés
 - Compilation : ~1900 fonctions → ~1060 fonctions
 
+## Réalisé : Cadres "tableau" (`feature/board-frames` → mergé dans main)
+
+Touche `N` : un repère visuel "je présente sur un tableau" tout en
+gardant ~95 % de zone de dessin libre. Calqué sur la logique du cycle
+`B` (Light ↔ Dark).
+
+### Comportement
+
+- **1er `N`** depuis Transparent → wipe des annotations + **cadre A**
+  (whiteboard clair : dégradé papier, mat gris, liseré clay arrondi,
+  équerres de coin). Force le thème Light.
+- **`N` suivant** → cycle **A ↔ B**. Le **cadre B** est un tableau ardoise
+  sombre (cadre biseauté, canvas slate en dégradé radial, baseline clay).
+  Force le thème Dark, recolore les annotations comme le fait `B`.
+- **`B`** remet `m_boardStyle = None` → revient aux fonds unis sans cadre.
+- **Esc + relance** → repart en Transparent sans cadre.
+
+### Implémentation
+
+- `enum class BoardStyle { None, FrameA, FrameB }` + membre `m_boardStyle`
+  (`MainWindow.h`).
+- `ID_CMD_CYCLEBOARD` (`resource.h`), accélérateur `"n"` (`DemoHelper.rc`).
+- Handler `ID_CMD_CYCLEBOARD` (`Commands.cpp`) répliquant la logique `B`.
+- `PaintBoardFrame()` (`MainWindow.cpp`) appelée depuis
+  `PaintThemeBackground()` : dessin **vectoriel GDI+** (pas de PNG embarqué),
+  géométrie exprimée dans l'espace 1920×1080 d'origine puis mise à l'échelle
+  de l'écran → net à toute résolution / multi-moniteur.
+- Helper local `DrawRoundedRect()` (GraphicsPath).
+- `m_boardStyle` remis à `None` dans `StartPresentationMode()`.
+
+### Référence visuelle
+
+Concepts SVG + PNG d'origine dans `background image/` (A = whiteboard,
+B = slate, C = minimal non retenu). Le code GDI+ reproduit A et B.
+
 ## Idées futures
 
 - **Background custom au clear** : remplacer le blanc par défaut
