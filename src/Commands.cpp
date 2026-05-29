@@ -44,6 +44,9 @@ LRESULT CMainWindow::DoCommand(int id)
                 RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
                 break;
             }
+            // Auto-save the annotated screen before tearing everything down
+            // (EndPresentationMode clears m_drawLines and frees the DCs).
+            SaveScreenshot();
             EndPresentationMode();
             UpdateCursor();
             break;

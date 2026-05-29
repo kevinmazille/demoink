@@ -24,7 +24,9 @@
 #include "IniSettings.h"
 #include "MemDC.h"
 
+#include <shlobj.h>
 #include <algorithm>
+#include <string>
 
 #define TRAY_WM_MESSAGE (WM_APP + 1)
 
@@ -773,4 +775,102 @@ void CMainWindow::PaintBoardFrame()
         Gdiplus::SolidBrush tray(Gdiplus::Color(0xD9, 0xD9, 0x77, 0x57));
         graphics.FillRectangle(&tray, X(40), Y(1028), X(1840), Y(12));
     }
+}
+
+static int GetPngEncoderClsid(CLSID* pClsid)
+{
+    UINT num  = 0;
+    UINT size = 0;
+    Gdiplus::GetImageEncodersSize(&num, &size);
+    if (size == 0)
+        return -1;
+    auto* pImageCodecInfo = static_cast<Gdiplus::ImageCodecInfo*>(malloc(size));
+    if (!pImageCodecInfo)
+        return -1;
+    Gdiplus::GetImageEncoders(num, size, pImageCodecInfo);
+    int result = -1;
+    for (UINT i = 0; i < num; ++i)
+    {
+        if (wcscmp(pImageCodecInfo[i].MimeType, L"image/png") == 0)
+        {
+            *pClsid = pImageCodecInfo[i].Clsid;
+            result  = static_cast<int>(i);
+            break;
+        }
+    }
+    free(pImageCodecInfo);
+    return result;
+}
+
+// Recursively create every directory along the path. Existing dirs are fine.
+static void EnsureDirectory(const std::wstring& path)
+{
+    if (path.empty())
+        return;
+    for (size_t i = 0; i < path.size(); ++i)
+    {
+        if (path[i] == L'\\' || path[i] == L'/')
+        {
+            if (i > 0)
+                CreateDirectoryW(path.substr(0, i).c_str(), nullptr);
+        }
+    }
+    CreateDirectoryW(path.c_str(), nullptr);
+}
+
+void CMainWindow::SaveScreenshot()
+{
+    if (m_drawLines.empty())
+        return;
+
+    int cx = m_rcScreen.right - m_rcScreen.left;
+    int cy = m_rcScreen.bottom - m_rcScreen.top;
+    if (cx <= 0 || cy <= 0)
+        return;
+
+    // Compose the theme background (already in hDesktopCompatibleDC) with the
+    // annotations on top, into a fresh DIB we can encode to PNG.
+    HDC     hScreenDC = GetDC(nullptr);
+    HDC     hMemDC    = CreateCompatibleDC(hScreenDC);
+    HBITMAP hBmp      = CreateCompatibleBitmap(hScreenDC, cx, cy);
+    auto    hOld      = static_cast<HBITMAP>(SelectObject(hMemDC, hBmp));
+
+    BitBlt(hMemDC, 0, 0, cx, cy, hDesktopCompatibleDC, 0, 0, SRCCOPY);
+    {
+        Gdiplus::Graphics graphics(hMemDC);
+        graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+        RenderAnnotations(graphics);
+    }
+
+    // Build the destination folder: %USERPROFILE%\Pictures\DemoHelper
+    std::wstring baseDir;
+    PWSTR        picturesPath = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Pictures, 0, nullptr, &picturesPath)))
+    {
+        baseDir = picturesPath;
+        CoTaskMemFree(picturesPath);
+    }
+    if (!baseDir.empty())
+        baseDir += L"\\DemoHelper";
+    EnsureDirectory(baseDir);
+
+    // Timestamped filename: YYYY-MM-DD_HH-MM-SS.png
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+    wchar_t name[64];
+    swprintf_s(name, L"%04d-%02d-%02d_%02d-%02d-%02d.png",
+               st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+    std::wstring fullPath = baseDir.empty() ? name : (baseDir + L"\\" + name);
+
+    CLSID pngClsid;
+    if (GetPngEncoderClsid(&pngClsid) >= 0)
+    {
+        Gdiplus::Bitmap bitmap(hBmp, nullptr);
+        bitmap.Save(fullPath.c_str(), &pngClsid, nullptr);
+    }
+
+    SelectObject(hMemDC, hOld);
+    DeleteObject(hBmp);
+    DeleteDC(hMemDC);
+    ReleaseDC(nullptr, hScreenDC);
 }
