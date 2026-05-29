@@ -490,6 +490,9 @@ bool CMainWindow::StartPresentationMode()
 
 bool CMainWindow::EndPresentationMode()
 {
+    // Auto-save the annotated screen (no-op if nothing was drawn) before the
+    // backing DCs are freed. Covers both exit paths: Esc and the draw hotkey.
+    SaveScreenshot();
     SetWindowPos(*this, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOREPOSITION | SWP_NOSIZE);
     SelectObject(hDesktopCompatibleDC, hOldBmp);
     DeleteObject(hDesktopCompatibleBitmap);
@@ -912,12 +915,9 @@ void CMainWindow::SaveScreenshot()
 
     SYSTEMTIME st;
     GetLocalTime(&st);
-    wchar_t yyyy[8], ymdDash[16], hms[16], mm[4], dd[4];
-    swprintf_s(yyyy, L"%04d", st.wYear);
+    wchar_t ymdDash[16], hms[16];
     swprintf_s(ymdDash, L"%04d-%02d-%02d", st.wYear, st.wMonth, st.wDay);
     swprintf_s(hms, L"%02d-%02d-%02d.png", st.wHour, st.wMinute, st.wSecond);
-    swprintf_s(mm, L"%02d", st.wMonth);
-    swprintf_s(dd, L"%02d", st.wDay);
 
     std::wstring client = GetMeetName();
 
@@ -936,12 +936,11 @@ void CMainWindow::SaveScreenshot()
         EnsureDirectory(byDate);
         bitmap.Save((byDate + L"\\" + hms).c_str(), &pngClsid, nullptr);
 
-        // Tree 1 — by client: Par client\<client>\YYYY\MM\DD\HH-MM-SS.png
+        // Tree 1 — by client: Par client\<client>\YYYY-MM-DD\HH-MM-SS.png
         // Only written when a client name was detected.
         if (!client.empty())
         {
-            std::wstring byClient = baseDir + L"\\Par client\\" + client +
-                                    L"\\" + yyyy + L"\\" + mm + L"\\" + dd;
+            std::wstring byClient = baseDir + L"\\Par client\\" + client + L"\\" + ymdDash;
             EnsureDirectory(byClient);
             bitmap.Save((byClient + L"\\" + hms).c_str(), &pngClsid, nullptr);
         }
