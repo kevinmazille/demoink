@@ -664,8 +664,75 @@ void CMainWindow::PaintThemeBackground()
         PaintBoardFrame();
 }
 
+static void DrawRoundedRect(Gdiplus::Graphics& graphics, Gdiplus::REAL x, Gdiplus::REAL y,
+                            Gdiplus::REAL w, Gdiplus::REAL h, Gdiplus::REAL r, const Gdiplus::Pen& pen)
+{
+    Gdiplus::REAL d = r * 2;
+    Gdiplus::GraphicsPath path;
+    path.AddArc(x, y, d, d, 180, 90);
+    path.AddArc(x + w - d, y, d, d, 270, 90);
+    path.AddArc(x + w - d, y + h - d, d, d, 0, 90);
+    path.AddArc(x, y + h - d, d, d, 90, 90);
+    path.CloseFigure();
+    graphics.DrawPath(&pen, &path);
+}
+
 void CMainWindow::PaintBoardFrame()
 {
-    // Decorative frame drawn on top of the theme background. Filled in by
-    // later steps (FrameA = light whiteboard, FrameB = dark slate).
+    // Decorative frame drawn on top of the theme background. Geometry is
+    // expressed in the original 1920x1080 design space and scaled to the
+    // live screen so it stays crisp at any resolution.
+    int cx = m_rcScreen.right - m_rcScreen.left;
+    int cy = m_rcScreen.bottom - m_rcScreen.top;
+    if (cx <= 0 || cy <= 0)
+        return;
+
+    const double sx = cx / 1920.0;
+    const double sy = cy / 1080.0;
+    const double s  = sy; // uniform scale for stroke widths / tick sizes
+
+    auto X = [&](double v) { return static_cast<Gdiplus::REAL>(v * sx); };
+    auto Y = [&](double v) { return static_cast<Gdiplus::REAL>(v * sy); };
+    auto W = [&](double v) { return static_cast<Gdiplus::REAL>(std::max(1.0, v * s)); };
+
+    Gdiplus::Graphics graphics(hDesktopCompatibleDC);
+    graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+    const Gdiplus::Color clay(0xFF, 0xD9, 0x77, 0x57);
+
+    if (m_boardStyle == BoardStyle::FrameA)
+    {
+        // Light whiteboard: paper gradient, grey mat border, thin clay
+        // liseré framing the ~95% canvas, plus corner registration ticks.
+        Gdiplus::RectF full(0.0f, 0.0f, static_cast<Gdiplus::REAL>(cx), static_cast<Gdiplus::REAL>(cy));
+        Gdiplus::LinearGradientBrush paper(full,
+                                           Gdiplus::Color(0xFF, 0xFD, 0xFD, 0xFC),
+                                           Gdiplus::Color(0xFF, 0xF4, 0xF2, 0xEE),
+                                           Gdiplus::LinearGradientModeVertical);
+        graphics.FillRectangle(&paper, full);
+
+        // Grey mat: a thick border stroke around the outer edge.
+        Gdiplus::Pen matPen(Gdiplus::Color(0xFF, 0xE7, 0xE3, 0xDC), W(28));
+        graphics.DrawRectangle(&matPen, X(14), Y(14), X(1920) - X(28), Y(1080) - Y(28));
+
+        // Thin clay liseré, rounded, framing the drawing zone.
+        DrawRoundedRect(graphics, X(34), Y(34), X(1852), Y(1012), W(8), Gdiplus::Pen(clay, W(3)));
+
+        // Corner registration ticks.
+        Gdiplus::Pen tickPen(clay, W(4));
+        tickPen.SetStartCap(Gdiplus::LineCapRound);
+        tickPen.SetEndCap(Gdiplus::LineCapRound);
+        // top-left
+        graphics.DrawLine(&tickPen, X(60), Y(34), X(60), Y(70));
+        graphics.DrawLine(&tickPen, X(34), Y(60), X(70), Y(60));
+        // top-right
+        graphics.DrawLine(&tickPen, X(1860), Y(34), X(1860), Y(70));
+        graphics.DrawLine(&tickPen, X(1886), Y(60), X(1850), Y(60));
+        // bottom-left
+        graphics.DrawLine(&tickPen, X(60), Y(1046), X(60), Y(1010));
+        graphics.DrawLine(&tickPen, X(34), Y(1020), X(70), Y(1020));
+        // bottom-right
+        graphics.DrawLine(&tickPen, X(1860), Y(1046), X(1860), Y(1010));
+        graphics.DrawLine(&tickPen, X(1886), Y(1020), X(1850), Y(1020));
+    }
 }
