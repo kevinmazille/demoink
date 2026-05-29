@@ -128,6 +128,7 @@ protected:
     void    ApplyTheme();
     void    PaintThemeBackground();
     void    PaintBoardFrame();
+    void    RenderAnnotations(Gdiplus::Graphics& graphics);
 
     static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD          HotKeyControl2HotKey(WORD hk);

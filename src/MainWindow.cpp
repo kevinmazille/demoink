@@ -152,74 +152,7 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                            SRCCOPY);
                     Gdiplus::Graphics graphics(memDC);
                     graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
-
-                    for (const auto& line : m_drawLines)
-                    {
-                        Gdiplus::Color color;
-                        color.SetValue(Gdiplus::Color::MakeARGB(line.alpha, GetRValue(m_colors[line.colorIndex]), GetGValue(m_colors[line.colorIndex]), GetBValue(m_colors[line.colorIndex])));
-                        Gdiplus::Pen pen(color, static_cast<Gdiplus::REAL>(line.penWidth));
-                        pen.SetLineCap(Gdiplus::LineCap::LineCapRound, Gdiplus::LineCap::LineCapRound, Gdiplus::DashCap::DashCapRound);
-
-                        if (line.lineType == LineType::Hand)
-                        {
-                            if (line.points.size() == 1)
-                            {
-                                auto                halfPenWidth = line.penWidth / 2;
-                                Gdiplus::SolidBrush brush(color);
-                                graphics.FillEllipse(&brush, line.points[0].X - halfPenWidth, line.points[0].Y - halfPenWidth, line.penWidth, line.penWidth);
-                            }
-                            else
-                                graphics.DrawLines(&pen, line.points.data(), static_cast<int>(line.points.size()));
-                        }
-                        else
-                        {
-                            switch (line.lineType)
-                            {
-                                case LineType::Arrow:
-                                    pen.SetEndCap(Gdiplus::LineCap::LineCapArrowAnchor);
-                                    [[fallthrough]];
-                                case LineType::Hand:
-                                case LineType::Straight:
-                                    if ((line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0) && (line.lineEndPoint.X >= 0) && (line.lineEndPoint.Y >= 0))
-                                    {
-                                        graphics.DrawLine(&pen, line.lineStartPoint, line.lineEndPoint);
-                                    }
-                                    break;
-                                case LineType::Rectangle:
-                                    if ((line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0) && (line.lineEndPoint.X >= 0) && (line.lineEndPoint.Y >= 0))
-                                    {
-                                        Gdiplus::Point startPt;
-                                        startPt.X   = std::min(line.lineStartPoint.X, line.lineEndPoint.X);
-                                        startPt.Y   = std::min(line.lineStartPoint.Y, line.lineEndPoint.Y);
-                                        auto width  = std::abs(line.lineEndPoint.X - line.lineStartPoint.X);
-                                        auto height = std::abs(line.lineEndPoint.Y - line.lineStartPoint.Y);
-                                        graphics.DrawRectangle(&pen, startPt.X, startPt.Y, width, height);
-                                    }
-                                    break;
-                                case LineType::Ellipse:
-                                    if ((line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0) && (line.lineEndPoint.X >= 0) && (line.lineEndPoint.Y >= 0))
-                                    {
-                                        Gdiplus::Point startPt;
-                                        startPt.X   = std::min(line.lineStartPoint.X, line.lineEndPoint.X);
-                                        startPt.Y   = std::min(line.lineStartPoint.Y, line.lineEndPoint.Y);
-                                        auto width  = std::abs(line.lineEndPoint.X - line.lineStartPoint.X);
-                                        auto height = std::abs(line.lineEndPoint.Y - line.lineStartPoint.Y);
-                                        graphics.DrawEllipse(&pen, startPt.X, startPt.Y, width, height);
-                                    }
-                                    break;
-                                case LineType::Text:
-                                    if (!line.text.empty() && (line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0))
-                                    {
-                                        Gdiplus::FontFamily fontFamily(L"Segoe UI");
-                                        Gdiplus::Font       font(&fontFamily, static_cast<Gdiplus::REAL>(line.fontSize), Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
-                                        Gdiplus::SolidBrush brush(color);
-                                        Gdiplus::PointF     origin(static_cast<Gdiplus::REAL>(line.lineStartPoint.X), static_cast<Gdiplus::REAL>(line.lineStartPoint.Y));
-                                        graphics.DrawString(line.text.c_str(), static_cast<INT>(line.text.size()), &font, origin, &brush);
-                                    }
-                                    break;
-                            }
-                        }
-                    }
+                    RenderAnnotations(graphics);
                 }
             }
             EndPaint(*this, &ps);
@@ -637,6 +570,77 @@ void CMainWindow::ApplyTheme()
         m_colors[8]    = RGB(120, 120, 120); // gray
         m_colors[9]    = RGB(200, 0, 200);   // magenta accent
         m_currentAlpha = LINE_ALPHA;
+    }
+}
+
+void CMainWindow::RenderAnnotations(Gdiplus::Graphics& graphics)
+{
+    for (const auto& line : m_drawLines)
+    {
+        Gdiplus::Color color;
+        color.SetValue(Gdiplus::Color::MakeARGB(line.alpha, GetRValue(m_colors[line.colorIndex]), GetGValue(m_colors[line.colorIndex]), GetBValue(m_colors[line.colorIndex])));
+        Gdiplus::Pen pen(color, static_cast<Gdiplus::REAL>(line.penWidth));
+        pen.SetLineCap(Gdiplus::LineCap::LineCapRound, Gdiplus::LineCap::LineCapRound, Gdiplus::DashCap::DashCapRound);
+
+        if (line.lineType == LineType::Hand)
+        {
+            if (line.points.size() == 1)
+            {
+                auto                halfPenWidth = line.penWidth / 2;
+                Gdiplus::SolidBrush brush(color);
+                graphics.FillEllipse(&brush, line.points[0].X - halfPenWidth, line.points[0].Y - halfPenWidth, line.penWidth, line.penWidth);
+            }
+            else
+                graphics.DrawLines(&pen, line.points.data(), static_cast<int>(line.points.size()));
+        }
+        else
+        {
+            switch (line.lineType)
+            {
+                case LineType::Arrow:
+                    pen.SetEndCap(Gdiplus::LineCap::LineCapArrowAnchor);
+                    [[fallthrough]];
+                case LineType::Hand:
+                case LineType::Straight:
+                    if ((line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0) && (line.lineEndPoint.X >= 0) && (line.lineEndPoint.Y >= 0))
+                    {
+                        graphics.DrawLine(&pen, line.lineStartPoint, line.lineEndPoint);
+                    }
+                    break;
+                case LineType::Rectangle:
+                    if ((line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0) && (line.lineEndPoint.X >= 0) && (line.lineEndPoint.Y >= 0))
+                    {
+                        Gdiplus::Point startPt;
+                        startPt.X   = std::min(line.lineStartPoint.X, line.lineEndPoint.X);
+                        startPt.Y   = std::min(line.lineStartPoint.Y, line.lineEndPoint.Y);
+                        auto width  = std::abs(line.lineEndPoint.X - line.lineStartPoint.X);
+                        auto height = std::abs(line.lineEndPoint.Y - line.lineStartPoint.Y);
+                        graphics.DrawRectangle(&pen, startPt.X, startPt.Y, width, height);
+                    }
+                    break;
+                case LineType::Ellipse:
+                    if ((line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0) && (line.lineEndPoint.X >= 0) && (line.lineEndPoint.Y >= 0))
+                    {
+                        Gdiplus::Point startPt;
+                        startPt.X   = std::min(line.lineStartPoint.X, line.lineEndPoint.X);
+                        startPt.Y   = std::min(line.lineStartPoint.Y, line.lineEndPoint.Y);
+                        auto width  = std::abs(line.lineEndPoint.X - line.lineStartPoint.X);
+                        auto height = std::abs(line.lineEndPoint.Y - line.lineStartPoint.Y);
+                        graphics.DrawEllipse(&pen, startPt.X, startPt.Y, width, height);
+                    }
+                    break;
+                case LineType::Text:
+                    if (!line.text.empty() && (line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0))
+                    {
+                        Gdiplus::FontFamily fontFamily(L"Segoe UI");
+                        Gdiplus::Font       font(&fontFamily, static_cast<Gdiplus::REAL>(line.fontSize), Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+                        Gdiplus::SolidBrush brush(color);
+                        Gdiplus::PointF     origin(static_cast<Gdiplus::REAL>(line.lineStartPoint.X), static_cast<Gdiplus::REAL>(line.lineStartPoint.Y));
+                        graphics.DrawString(line.text.c_str(), static_cast<INT>(line.text.size()), &font, origin, &brush);
+                    }
+                    break;
+            }
+        }
     }
 }
 
