@@ -49,14 +49,14 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
     g_hResource = hInstance;
     g_hInstance = hInstance;
 
-    auto iniFilePath = CPathUtils::GetModuleDir() + L"\\DemoHelper.ini";
+    auto iniFilePath = CPathUtils::GetModuleDir() + L"\\DemoInk.ini";
     {
         CAutoFile hFile = CreateFile(iniFilePath.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, 0, nullptr);
         if (!hFile)
         {
-            auto appDataPath = CPathUtils::GetAppDataPath() + L"\\DemoHelper";
+            auto appDataPath = CPathUtils::GetAppDataPath() + L"\\DemoInk";
             CreateDirectory(appDataPath.c_str(), nullptr);
-            iniFilePath = appDataPath + L"\\DemoHelper.ini";
+            iniFilePath = appDataPath + L"\\DemoInk.ini";
         }
     }
     CIniSettings::Instance().SetIniPath(iniFilePath);

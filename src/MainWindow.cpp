@@ -895,7 +895,7 @@ void CMainWindow::SaveScreenshot()
         RenderAnnotations(graphics);
     }
 
-    // Build the root folder: %USERPROFILE%\Pictures\DemoHelper
+    // Build the root folder: %USERPROFILE%\Pictures\DemoInk
     std::wstring baseDir;
     PWSTR        picturesPath = nullptr;
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Pictures, 0, nullptr, &picturesPath)))
@@ -911,7 +911,7 @@ void CMainWindow::SaveScreenshot()
         ReleaseDC(nullptr, hScreenDC);
         return;
     }
-    baseDir += L"\\DemoHelper";
+    baseDir += L"\\DemoInk";
 
     SYSTEMTIME st;
     GetLocalTime(&st);

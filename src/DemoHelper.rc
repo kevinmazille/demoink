@@ -93,11 +93,11 @@ END
 
 IDD_OPTIONS DIALOGEX 0, 0, 297, 170
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "DemoHelper Options"
+CAPTION "DemoInk Options"
 FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
     ICON            IDI_DEMOHELPER,IDC_MYICON2,7,7,20,20
-    CONTROL         "DemoHelper: visit our <a href=""https://tools.stefankueng.com/DemoHelper.html"">website</a>",IDC_SYSLINK1,
+    CONTROL         "DemoInk, a fork of <a href=""https://tools.stefankueng.com/DemoHelper.html"">DemoHelper</a> by Stefan Kueng",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,40,13,244,12
     GROUPBOX        "Misc",IDC_STATIC,7,25,283,40
     LTEXT           "Whether to capture only the monitor where the cursor is at, or the whole virtual screen covering all monitors.",IDC_STATIC,14,33,270,19
@@ -181,9 +181,9 @@ IDR_HELP                RTF                     "res\\DemoHelperHelp.rtf"
 
 STRINGTABLE
 BEGIN
-    IDS_APP_TITLE           "DemoHelper"
+    IDS_APP_TITLE           "DemoInk"
     IDS_WEBLINK             "https://tools.stefankueng.com/DemoHelper.html"
-    IDC_DEMOHELPER          "DemoHelper"
+    IDC_DEMOHELPER          "DemoInk"
 END
 
 #endif    // English (United States) resources

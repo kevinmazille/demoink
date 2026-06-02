@@ -271,7 +271,7 @@ LRESULT CMainWindow::DoCommand(int id)
             GetWindowRect(hwndOwner, &rcOwner);
             const int width  = 470;
             const int height = 430;
-            dlg.DoModal(hResource, hwndOwner, "DemoHelper help", IDR_HELP, L"RTF", IDI_DEMOHELPER,
+            dlg.DoModal(hResource, hwndOwner, "DemoInk help", IDR_HELP, L"RTF", IDI_DEMOHELPER,
                         rcOwner.right - width, rcOwner.bottom - height, width, height);
         }
         break;
