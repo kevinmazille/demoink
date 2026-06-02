@@ -1,7 +1,14 @@
-# DemoHelper — Fork personnel
+# DemoInk — Fork personnel
 
 Fork du projet [stefankueng/demohelper](https://github.com/stefankueng/demohelper)
-pour ajouter des fonctionnalités personnelles, principalement autour du mode dessin.
+(renommé **DemoInk** pour le produit, le 2026-05-30) pour ajouter des
+fonctionnalités personnelles, principalement autour du mode dessin.
+
+**Convention de renommage** : seul le *produit* est renommé (exe, titres,
+chemins runtime, docs). Les *noms de fichiers source*
+(`DemoHelper.cpp/.h/.sln/.vcxproj/.rc`…) sont **conservés tels quels** pour
+rester mergeable avec l'upstream. Le nom de l'exe est piloté par
+`<TargetName>DemoInk</TargetName>` dans `src/DemoHelper.vcxproj`.
 
 ## Build
 
@@ -11,7 +18,7 @@ Compilateur : MSVC v143 (Visual Studio 2022 Community) + Windows 11 SDK.
 build.bat
 ```
 
-Sortie : `bin/Release/x64/DemoHelper.exe`
+Sortie : `bin/Release/x64/DemoInk.exe`
 
 Le sous-module `sktoolslib/` est obligatoire — récupérable via :
 ```bash
@@ -67,7 +74,7 @@ Acquis :
   clavier/souris, ripple visualizer, hooks bas-niveau, dialog
   Configure colors. Exe passé de ~400 KB à ~346 KB.
 - Build MSVC v143 vérifié OK (`build.bat` produit
-  `bin/Release/x64/DemoHelper.exe`)
+  `bin/Release/x64/DemoInk.exe`)
 - Setup git : `origin` = fork perso, `upstream` = stefankueng/demohelper
 - Branches `feature/text-mode` et `feature/strip-down` conservées,
   fusionnées dans `main`
@@ -82,12 +89,22 @@ Acquis :
   Concepts de référence dans `background image/`.
 - Auto-screenshot (`feature/auto-screenshot`) : à la sortie du mode draw
   (Esc ou hotkey) si annotations, capture fond+dessins en PNG sous
-  `%USERPROFILE%\Pictures\DemoHelper\`, double arbo `Par client\<meet>\
+  `%USERPROFILE%\Pictures\DemoInk\`, double arbo `Par client\<meet>\
   AAAA-MM-JJ\` et `Par date\AAAA-MM-JJ\<meet>\`. Nom du client extrait
   du titre de la fenêtre Chrome `Meet - <nom> - Google Chrome`.
   `SaveScreenshot()` / `GetMeetName()` dans `MainWindow.cpp`.
+- Renommage produit **DemoInk** (`feature/rename-demoink`) : exe, titres,
+  About/Help, version info, chemins runtime (`DemoInk.ini`,
+  `Pictures\DemoInk`). Noms de fichiers source gardés pour les merges
+  upstream. Build vérifié → `bin/Release/x64/DemoInk.exe`.
 
 Prochaine étape (idées) :
+- **Renommer le repo GitHub** `kevinmazille/demohelper` →
+  `kevinmazille/demoink` (à faire par Kevin / sur OK), puis mettre à jour
+  le remote `origin` local. Garder `upstream` = stefankueng/demohelper.
+  À faire avant de publier le post LinkedIn d'annonce (post #5 "DemoInk").
+- Renommer le dossier local `claude-projects/perso/demohelper` → `demoink`
+  (vérifier le `includeIf` git).
 - Re-bind des raccourcis autour de Ctrl+Shift (tout faire d'une main) +
   repère visuel du mode courant. Voir docs/modifications.md.
 

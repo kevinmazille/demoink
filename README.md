@@ -1,18 +1,23 @@
-# DemoHelper
-A tool which helps in demonstrations, presentations or if you just need to explain
-someone something on your computer.
+# DemoInk
 
-[![Build Status](https://tortoisesvn.visualstudio.com/tortoisesvnGitHub/_apis/build/status/stefankueng.demohelper?branchName=main)](https://tortoisesvn.visualstudio.com/tortoisesvnGitHub/_build/latest?definitionId=11&branchName=main)
+A lightweight screen-annotation overlay for live demos: scribble, draw
+shapes, and type directly on top of whatever is on screen, then exit.
 
-*DemoHelper* is an annotation and screen zoom tool you can use for technical
-presentations that include application demonstrations.
+*DemoInk* is a personal fork of
+[DemoHelper](https://tools.stefankueng.com/DemoHelper.html) by
+[Stefan Küng](https://github.com/stefankueng/demohelper). The fork has been
+stripped down to a pure drawing overlay (the original zoom, lens and
+keystroke/mouse overlays were removed) and extended with a text mode,
+light/dark/board themes, and auto-screenshots filed by client and date.
 
-It can also show an overlay indicating which key-shortcut you entered or which mousebutton you clicked,
-which is also useful when recording screencasts.
+It runs unobtrusively in the system tray and is activated by a customizable
+hotkey or the tray icon context menu. On exit, if anything was drawn, the
+annotated screen is auto-saved as a PNG under `Pictures\DemoInk`, filed by
+client (from the active Google Meet tab) and by date.
 
-*DemoHelper* runs unobtrusively in the system tray and is activated by either customizable
-otkeys or the context menu of the tray icon.
+## Credits
 
-You can draw on the screen to mark special areas, or you can zoom in on an area on the screen.
-
-Please visit the [homepage](https://tools.stefankueng.com/DemoHelper.html) of *DemoHelper* for more information.
+All the heavy lifting comes from Stefan Küng's original *DemoHelper* —
+see the [upstream project](https://github.com/stefankueng/demohelper).
+This fork keeps the original source layout to stay easy to merge with
+upstream.

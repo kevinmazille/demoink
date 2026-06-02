@@ -221,6 +221,61 @@ secondaires repérés mais non utilisés : caméra/micro en cours d'usage via
 et barre flottante de partage d'écran (fenêtre dédiée) pour distinguer
 "en réunion" de "en train de partager".
 
+## Réalisé : Renommage produit DemoInk (`feature/rename-demoink`)
+
+Le fork a tellement divergé de l'upstream (essence = gribouiller sur
+l'écran en live pour les SE qui font des démos) qu'il mérite son propre
+nom. Nom retenu (décidé 2026-05-30) : **DemoInk** (alternatives écartées :
+ScreenScribe — déjà pris sur GitHub dans le même créneau ; Inkcast —
+libre mais plus abstrait).
+
+### Principe
+
+Seul le **produit** est renommé ; les **noms de fichiers source**
+(`DemoHelper.cpp/.h/.sln/.vcxproj/.rc`…) sont **conservés** pour rester
+mergeable avec l'upstream `stefankueng/demohelper`.
+
+### Fait
+
+- **Exe** : `<TargetName>DemoInk</TargetName>` dans `src/DemoHelper.vcxproj`
+  → la sortie est `bin/Release/x64/DemoInk.exe`. `build.bat`/`.sln`
+  inchangés (le nom de l'exe est piloté par `TargetName`, pas par le nom
+  du projet).
+- **Chaînes visibles** : titre de fenêtre + nom de classe (`IDS_APP_TITLE`),
+  string tray (`IDC_DEMOHELPER`), caption Options, titre du Help, en-tête
+  du RTF d'aide → DemoInk. Le syslink "About" est reformulé pour créditer
+  DemoHelper / Stefan Küng comme upstream.
+- **Version info** (`src/DemoHelper.rc2`, UTF-16) : `FileDescription`,
+  `InternalName`, `OriginalFilename`, `ProductName` → DemoInk. `CompanyName`
+  (URL upstream) et `LegalCopyright` (Stefan Küng) conservés.
+- **Chemins runtime** : `DemoHelper.ini` → `DemoInk.ini`,
+  `AppData\DemoHelper` → `DemoInk`, `Pictures\DemoHelper` → `DemoInk`.
+  **Reset des prefs accepté** (`Draw/colorindex`, `Draw/currentpenwidth`),
+  pas de code de migration.
+- **Docs** : `README.md`, `src/ReadMe.txt`, `CLAUDE.md` — crédit upstream
+  gardé partout.
+- Build MSVC v143 vérifié OK.
+
+### Inchangé (volontairement)
+
+- `version.build.in` / `versioninfo.build` / `default.build` : système de
+  build nant **upstream non utilisé** par `build.bat` (qui passe par
+  MSBuild). Laissés tels quels pour les merges.
+- `choco/` (packaging upstream), regpath debug `Software\DemoHelper\Debug`
+  (debug-only), commentaires d'en-tête, GUID du projet, URLs stefankueng.
+
+### Reste à faire (hors code, sur OK de Kevin)
+
+- **Repo GitHub `origin`** : renommer `kevinmazille/demohelper` →
+  `kevinmazille/demoink` (GitHub redirige l'ancienne URL ; mettre à jour
+  le remote local). **Garder `upstream` = stefankueng/demohelper.**
+- **Dossier local** : renommer `claude-projects/perso/demohelper` →
+  `demoink` et vérifier le `includeIf` git
+  (voir [[reference-github-accounts]]).
+- À faire **avant** de publier le post LinkedIn d'annonce (post #5
+  "DemoInk" dans la DB Notion "LinkedIn Backlog", déjà rédigé), pour que
+  le lien du 1er commentaire pointe vers le bon repo.
+
 ## Idées futures
 
 - **Re-bind des raccourcis autour de Ctrl+Shift** : regrouper les touches

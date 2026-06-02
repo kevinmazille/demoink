@@ -1,1 +1,1 @@
-DemoHelper: a small application for presentations
+DemoInk: a small application for presentations (fork of DemoHelper by Stefan Kueng)
