@@ -201,7 +201,7 @@ LRESULT CMainWindow::DoCommand(int id)
                 line.colorIndex     = m_colorIndex;
                 line.penWidth       = m_currentPenWidth;
                 line.alpha          = 255;
-                line.fontSize       = m_currentPenWidth * 4;
+                line.fontSize       = m_currentPenWidth * 5;
                 line.lineStartPoint = Gdiplus::Point(pt.x, pt.y);
                 m_drawLines.push_back(line);
 

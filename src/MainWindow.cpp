@@ -637,7 +637,7 @@ void CMainWindow::RenderAnnotations(Gdiplus::Graphics& graphics)
                 case LineType::Text:
                     if (!line.text.empty() && (line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0))
                     {
-                        Gdiplus::FontFamily fontFamily(L"Segoe UI");
+                        Gdiplus::FontFamily fontFamily(L"Segoe Print");
                         Gdiplus::Font       font(&fontFamily, static_cast<Gdiplus::REAL>(line.fontSize), Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
                         Gdiplus::SolidBrush brush(color);
                         Gdiplus::PointF     origin(static_cast<Gdiplus::REAL>(line.lineStartPoint.X), static_cast<Gdiplus::REAL>(line.lineStartPoint.Y));
