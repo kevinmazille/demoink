@@ -37,6 +37,17 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
 
+    // Single-instance guard: bail out early if another instance already owns
+    // the tray icon (matters now that the app can be launched automatically at
+    // logon). Session-local name -> one instance per user session.
+    HANDLE hSingleInstanceMutex = CreateMutex(nullptr, FALSE, L"DemoInk_SingleInstance_Mutex");
+    if (hSingleInstanceMutex && GetLastError() == ERROR_ALREADY_EXISTS)
+    {
+        CloseHandle(hSingleInstanceMutex);
+        return 0;
+    }
+    OnOutOfScope(if (hSingleInstanceMutex) CloseHandle(hSingleInstanceMutex););
+
     INITCOMMONCONTROLSEX used = {
         sizeof(INITCOMMONCONTROLSEX),
         ICC_STANDARD_CLASSES | ICC_BAR_CLASSES};
