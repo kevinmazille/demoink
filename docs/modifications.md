@@ -276,6 +276,54 @@ mergeable avec l'upstream `stefankueng/demohelper`.
   "DemoInk" dans la DB Notion "LinkedIn Backlog", déjà rédigé), pour que
   le lien du 1er commentaire pointe vers le bon repo.
 
+## Réalisé : Installable + autostart au démarrage Windows
+
+Trois paliers (branches chaînées `feature/single-instance` →
+`feature/autostart-toggle` → `feature/installer`). Cible = ouverture de
+**session utilisateur** (app tray/GUI, pas un service Windows).
+
+### Palier 1 — Instance unique
+Mutex nommé session-local `DemoInk_SingleInstance_Mutex` en tête de
+`wWinMain` (`src/DemoHelper.cpp`). Une 2e instance sort en code 0 (pas de
+doublon de tray icon). Libéré via `OnOutOfScope`. Prérequis de l'autostart.
+
+### Palier 2 — Toggle autostart in-app
+Item de menu tray **« Start with Windows »** (`ID_TRAYCONTEXT_AUTOSTART`)
+avec coche dynamique posée avant `TrackPopupMenu` (menu rechargé à chaque
+clic droit). Helpers `IsAutostartEnabled()` / `SetAutostart(bool)` dans
+`MainWindow.cpp` : clé `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
+valeur `DemoInk` = `CPathUtils::GetModulePath()` quoté. Pointe vers
+l'emplacement courant de l'exe → marche en portable **et** installé.
+
+### Palier 3 — Installeur Inno Setup
+`installer/DemoInk.iss` : install **per-user** (`{localappdata}\Programs\
+DemoInk`, `PrivilegesRequired=lowest`, pas d'UAC). Bundle le **même** exe
+que le mode portable (CRT statique → **aucun redist VC++**). Raccourci menu
+Démarrer, task desktop optionnelle, task **autostart** écrivant la **même**
+valeur Run `DemoInk` que le toggle in-app (jamais de divergence).
+`CloseApplications` ferme une instance en cours avant écrasement ;
+`UninstallDelete` retire l'INI runtime pour une désinstall propre.
+Build : `winget install --id JRSoftware.InnoSetup -e` puis
+`"…\Inno Setup 6\ISCC.exe" installer\DemoInk.iss` →
+`installer\Output\DemoInk-2.3.0-Setup.exe` (`Output/` gitignoré).
+Test install/désinstall validé (install → tout en place → désinstall →
+zéro résidu).
+
+### RÈGLE DE RELEASE — toujours 2 artefacts (portable + installeur)
+
+Un **seul** `DemoInk.exe` couvre les deux modes (l'app retombe sur
+`%AppData%\DemoInk` pour l'INI si le dossier de l'exe est read-only ;
+l'autostart et l'instance unique sont identiques des deux côtés). Donc à
+**chaque publication d'une étape/version**, fournir systématiquement les
+**deux** :
+1. **Portable** : `bin/Release/x64/DemoInk.exe` tel quel (autonome, zéro DLL).
+2. **Installeur** : `installer/Output/DemoInk-<ver>-Setup.exe` (recompiler le
+   `.iss` après le build pour qu'il embarque l'exe à jour).
+
+Procédure release : `build.bat` → recompiler le `.iss` → publier les 2
+fichiers ensemble (ex. mêmes assets d'une release GitHub). Penser à bumper
+`MyAppVersion` dans le `.iss` quand la version change.
+
 ## Idées futures
 
 - **Re-bind des raccourcis autour de Ctrl+Shift** : regrouper les touches

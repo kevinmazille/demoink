@@ -109,12 +109,20 @@ Plan : `~/.claude/plans/starry-munching-kitten.md`. Cible = ouverture de session
   « Start with Windows » (`ID_TRAYCONTEXT_AUTOSTART`=32808), helpers
   `IsAutostartEnabled()`/`SetAutostart()` (clé `HKCU\...\Run`, valeur `DemoInk`).
   Build OK ; test visuel de la coche à confirmer par Kevin.
-- ⬜ **Palier 3** (`feature/installer` à créer) : `installer/DemoInk.iss` Inno
-  Setup, install per-user `{localappdata}\Programs\DemoInk`, AppVersion 2.3.0,
-  task autostart (même valeur Run), pas de redist (CRT statique). Inno PAS
-  installé → `winget install --id JRSoftware.InnoSetup -e` d'abord.
+- ✅ **Palier 3** (`feature/installer`, `2489072`) : `installer/DemoInk.iss`
+  Inno Setup, install per-user `{localappdata}\Programs\DemoInk`, AppVersion
+  2.3.0, task autostart (même valeur Run `DemoInk`), pas de redist (CRT
+  statique). Build : `"…\Inno Setup 6\ISCC.exe" installer\DemoInk.iss` →
+  `installer\Output\DemoInk-2.3.0-Setup.exe`. Test install/désinstall propre OK.
 - Ensuite : merger la chaîne dans `main` (décider d'abord le sort de
   `feat/softer-text-font` après test police), push.
+
+**RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les
+deux modes. À chaque publication, fournir : (1) le **portable**
+`bin/Release/x64/DemoInk.exe`, et (2) l'**installeur**
+`installer/Output/DemoInk-<ver>-Setup.exe` (recompiler le `.iss` après
+`build.bat`). Bumper `MyAppVersion` dans le `.iss` au changement de version.
+Détail : docs/modifications.md.
 
 Idées plus tard :
 - **Renommer le repo GitHub** `kevinmazille/demohelper` → `demoink` (par Kevin),
