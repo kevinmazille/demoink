@@ -98,15 +98,30 @@ Acquis :
   `Pictures\DemoInk`). Noms de fichiers source gardés pour les merges
   upstream. Build vérifié → `bin/Release/x64/DemoInk.exe`.
 
-Prochaine étape (idées) :
-- **Renommer le repo GitHub** `kevinmazille/demohelper` →
-  `kevinmazille/demoink` (à faire par Kevin / sur OK), puis mettre à jour
-  le remote `origin` local. Garder `upstream` = stefankueng/demohelper.
-  À faire avant de publier le post LinkedIn d'annonce (post #5 "DemoInk").
-- Renommer le dossier local `claude-projects/perso/demohelper` → `demoink`
-  (vérifier le `includeIf` git).
-- Re-bind des raccourcis autour de Ctrl+Shift (tout faire d'une main) +
-  repère visuel du mode courant. Voir docs/modifications.md.
+**CHANTIER EN COURS (2026-06-08) — Installable + autostart au démarrage Windows.**
+Plan : `~/.claude/plans/starry-munching-kitten.md`. Cible = ouverture de session
+(app tray, pas un service). Branches **chaînées, pas encore mergées/poussées** :
+`main` → `feat/softer-text-font` → `feature/single-instance` →
+`feature/autostart-toggle` (courante).
+- ✅ **Palier 1** (`feature/single-instance`, `7e2d9c1`) : mutex nommé
+  `DemoInk_SingleInstance_Mutex` en tête de `wWinMain`. Build + test OK.
+- ✅ **Palier 2** (`feature/autostart-toggle`, `a434d90`) : item tray
+  « Start with Windows » (`ID_TRAYCONTEXT_AUTOSTART`=32808), helpers
+  `IsAutostartEnabled()`/`SetAutostart()` (clé `HKCU\...\Run`, valeur `DemoInk`).
+  Build OK ; test visuel de la coche à confirmer par Kevin.
+- ⬜ **Palier 3** (`feature/installer` à créer) : `installer/DemoInk.iss` Inno
+  Setup, install per-user `{localappdata}\Programs\DemoInk`, AppVersion 2.3.0,
+  task autostart (même valeur Run), pas de redist (CRT statique). Inno PAS
+  installé → `winget install --id JRSoftware.InnoSetup -e` d'abord.
+- Ensuite : merger la chaîne dans `main` (décider d'abord le sort de
+  `feat/softer-text-font` après test police), push.
+
+Idées plus tard :
+- **Renommer le repo GitHub** `kevinmazille/demohelper` → `demoink` (par Kevin),
+  puis remote `origin`. Avant le post LinkedIn #5 "DemoInk".
+- Renommer le dossier local `perso/demohelper` → `demoink` (vérifier `includeIf`).
+- Re-bind des raccourcis autour de Ctrl+Shift + repère visuel du mode courant.
+  Voir docs/modifications.md.
 
 ## Pièges à connaître (env de l'utilisateur)
 
