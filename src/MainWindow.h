@@ -135,6 +135,10 @@ protected:
     static WORD          HotKeyControl2HotKey(WORD hk);
     static WORD          HotKey2HotKeyControl(WORD hk);
 
+    // Autostart at logon, backed by the HKCU ...\CurrentVersion\Run key.
+    static bool IsAutostartEnabled();
+    static void SetAutostart(bool enable);
+
     void RegisterHotKeys();
     bool UpdateCursor();
 

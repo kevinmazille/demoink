@@ -189,6 +189,9 @@ LRESULT CMainWindow::DoCommand(int id)
         case ID_TRAYCONTEXT_DRAW:
             SetTimer(*this, TIMER_ID_DRAW, 300, nullptr);
             break;
+        case ID_TRAYCONTEXT_AUTOSTART:
+            SetAutostart(!IsAutostartEnabled());   // toggle; checkmark refreshes on next menu open
+            break;
         case ID_CMD_TEXTMODE:
             if (!m_bTextMode)
             {

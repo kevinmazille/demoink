@@ -22,6 +22,7 @@
 #include "DPIAware.h"
 #include "DebugOutput.h"
 #include "IniSettings.h"
+#include "PathUtils.h"
 #include "MemDC.h"
 
 #include <shlobj.h>
@@ -325,6 +326,8 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                     GetCursorPos(&pt);
                     HMENU hMenu    = LoadMenu(hResource, MAKEINTRESOURCE(IDC_DEMOHELPER));
                     HMENU hPopMenu = GetSubMenu(hMenu, 0);
+                    CheckMenuItem(hPopMenu, ID_TRAYCONTEXT_AUTOSTART,
+                                  MF_BYCOMMAND | (IsAutostartEnabled() ? MF_CHECKED : MF_UNCHECKED));
                     TrackPopupMenu(hPopMenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON, pt.x, pt.y, 0, *this, nullptr);
                     DestroyMenu(hMenu);
                 }
@@ -526,6 +529,42 @@ void CMainWindow::RegisterHotKeys()
     draw      = HotKeyControl2HotKey(draw);
 
     RegisterHotKey(*this, DRAW_HOTKEY, HIBYTE(draw), LOBYTE(draw));
+}
+
+namespace
+{
+    constexpr wchar_t AUTOSTART_KEY[]   = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+    constexpr wchar_t AUTOSTART_VALUE[] = L"DemoInk";
+} // namespace
+
+bool CMainWindow::IsAutostartEnabled()
+{
+    HKEY hKey;
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, AUTOSTART_KEY, 0, KEY_QUERY_VALUE, &hKey) != ERROR_SUCCESS)
+        return false;
+    bool present = (RegQueryValueEx(hKey, AUTOSTART_VALUE, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+    RegCloseKey(hKey);
+    return present;
+}
+
+void CMainWindow::SetAutostart(bool enable)
+{
+    HKEY hKey;
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, AUTOSTART_KEY, 0, KEY_SET_VALUE, &hKey) != ERROR_SUCCESS)
+        return;
+    if (enable)
+    {
+        // Quote the path so a space in it can't break the command line.
+        std::wstring quoted = L"\"" + CPathUtils::GetModulePath() + L"\"";
+        RegSetValueEx(hKey, AUTOSTART_VALUE, 0, REG_SZ,
+                      reinterpret_cast<const BYTE*>(quoted.c_str()),
+                      static_cast<DWORD>((quoted.size() + 1) * sizeof(wchar_t)));
+    }
+    else
+    {
+        RegDeleteValue(hKey, AUTOSTART_VALUE);
+    }
+    RegCloseKey(hKey);
 }
 
 bool CMainWindow::UpdateCursor()
