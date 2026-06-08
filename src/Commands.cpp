@@ -39,6 +39,7 @@ LRESULT CMainWindow::DoCommand(int id)
             if (m_bTextMode)
             {
                 m_bTextMode = false;
+                KillTimer(*this, TIMER_ID_CARET);
                 if (!m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
                     m_drawLines.pop_back();
                 RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
@@ -208,8 +209,10 @@ LRESULT CMainWindow::DoCommand(int id)
                 line.lineStartPoint = Gdiplus::Point(pt.x, pt.y);
                 m_drawLines.push_back(line);
 
-                m_bTextMode = true;
-                m_bDrawing  = false;
+                m_bTextMode    = true;
+                m_bDrawing     = false;
+                m_caretVisible = true;
+                ::SetTimer(*this, TIMER_ID_CARET, 500, nullptr);
                 RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
             }
             break;

@@ -156,6 +156,7 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                     Gdiplus::Graphics graphics(memDC);
                     graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
                     RenderAnnotations(graphics);
+                    RenderTextCaret(graphics);
                 }
             }
             EndPaint(*this, &ps);
@@ -175,6 +176,7 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                         m_drawLines.pop_back();
                 }
                 m_bTextMode = false;
+                KillTimer(*this, TIMER_ID_CARET);
                 InvalidateRect(*this, nullptr, FALSE);
                 break;
             }
@@ -371,6 +373,14 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                 KillTimer(*this, TIMER_ID_DRAW);
                 StartPresentationMode();
             }
+            else if (wParam == TIMER_ID_CARET)
+            {
+                if (m_bTextMode)
+                {
+                    m_caretVisible = !m_caretVisible;
+                    InvalidateRect(*this, nullptr, FALSE);
+                }
+            }
             else if (wParam == TIMER_ID_FADE)
             {
                 // go through all lines and reduce the fade-count value
@@ -512,6 +522,7 @@ bool CMainWindow::EndPresentationMode()
     m_drawLines.clear();
     m_bDrawing  = false;
     m_bTextMode = false;
+    KillTimer(*this, TIMER_ID_CARET);
     SetCursor(m_hPreviousCursor);
     if (m_hCursor)
     {
@@ -686,6 +697,37 @@ void CMainWindow::RenderAnnotations(Gdiplus::Graphics& graphics)
             }
         }
     }
+}
+
+void CMainWindow::RenderTextCaret(Gdiplus::Graphics& graphics)
+{
+    // Blinking caret shown only while typing. Drawn as editing chrome here in
+    // WM_PAINT (not in RenderAnnotations) so it never ends up in screenshots.
+    if (!m_bTextMode || !m_caretVisible || m_drawLines.empty())
+        return;
+    const auto& line = m_drawLines.back();
+    if (line.lineType != LineType::Text)
+        return;
+
+    Gdiplus::FontFamily fontFamily(L"Segoe Print");
+    Gdiplus::Font       font(&fontFamily, static_cast<Gdiplus::REAL>(line.fontSize), Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+
+    // Caret sits at the end of the text already typed (or at the origin if empty).
+    Gdiplus::REAL caretX = static_cast<Gdiplus::REAL>(line.lineStartPoint.X);
+    if (!line.text.empty())
+    {
+        Gdiplus::RectF  bounds;
+        Gdiplus::PointF origin(0, 0);
+        graphics.MeasureString(line.text.c_str(), static_cast<INT>(line.text.size()), &font, origin, &bounds);
+        caretX += bounds.Width;
+    }
+    Gdiplus::REAL caretY      = static_cast<Gdiplus::REAL>(line.lineStartPoint.Y);
+    Gdiplus::REAL caretHeight = static_cast<Gdiplus::REAL>(line.fontSize);
+
+    Gdiplus::Color color;
+    color.SetValue(Gdiplus::Color::MakeARGB(255, GetRValue(m_colors[line.colorIndex]), GetGValue(m_colors[line.colorIndex]), GetBValue(m_colors[line.colorIndex])));
+    Gdiplus::Pen caretPen(color, std::max(2.0f, line.fontSize / 16.0f));
+    graphics.DrawLine(&caretPen, caretX, caretY, caretX, caretY + caretHeight);
 }
 
 void CMainWindow::PaintThemeBackground()

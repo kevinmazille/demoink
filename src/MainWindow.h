@@ -32,6 +32,7 @@
 
 #define TIMER_ID_DRAW 101
 #define TIMER_ID_FADE 103
+#define TIMER_ID_CARET 104
 
 #define LINE_ALPHA 100
 
@@ -129,6 +130,7 @@ protected:
     void    PaintThemeBackground();
     void    PaintBoardFrame();
     void    RenderAnnotations(Gdiplus::Graphics& graphics);
+    void    RenderTextCaret(Gdiplus::Graphics& graphics);
     void    SaveScreenshot();
 
     static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
@@ -170,9 +172,10 @@ protected:
     int  m_oldColorIndex;
     BYTE m_oldAlpha;
 
-    bool       m_bTextMode  = false;
-    Theme      m_theme      = Theme::Light;
-    BoardStyle m_boardStyle = BoardStyle::None;
+    bool       m_bTextMode    = false;
+    bool       m_caretVisible = true; // blink state for the text-mode caret
+    Theme      m_theme        = Theme::Light;
+    BoardStyle m_boardStyle   = BoardStyle::None;
 
     RECT                 m_rcScreen;
     std::deque<DrawLine> m_drawLines;
