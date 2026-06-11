@@ -367,8 +367,38 @@ au-dessus du texte. Désormais ancré sur la **ligne de base** : hauteur =
 ascent, bas = baseline, le texte repose au bas du caret. `RenderTextCaret`
 (`MainWindow.cpp`).
 
+## Réalisé : Défauts couleur/alpha + lissage du trait (`feature/text-options-and-defaults`)
+
+Trois ajustements demandés à l'usage, sur la même branche que la future
+sélection de police.
+
+### Rouge au lancement
+La couleur de dessin repart **toujours sur rouge** (index 1) à chaque
+ouverture de l'app, au lieu de restaurer la dernière couleur via l'INI.
+`colorindex` n'est plus persisté (`WM_CREATE` + sauvegarde dans
+`MainWindow.cpp`). Changement libre pendant la session.
+
+### Alpha du texte suit le thème
+Le texte héritait toujours d'`alpha = 255` (opaque). Il suit désormais
+`m_currentAlpha` comme les traits (`Commands.cpp`, `ID_CMD_TEXTMODE`) :
+semi-transparent sur fond Transparent/Light, plein sur fond Dark. Un texte
+déjà posé est réaligné au changement de thème (boucle existante des
+handlers `Q`/`Z`).
+
+### Lissage du trait à main levée
+`RenderAnnotations` reliait les points capturés par des segments droits
+(`DrawLines`) → crantelage visible sur les mouvements rapides (Windows
+espace les `WM_MOUSEMOVE`). Remplacé par une **spline cardinale**
+`DrawCurve` (tension `0.5f`) : courbes fluides sans trop arrondir les
+angles serrés. S'applique au rendu live **et** aux screenshots (chemin de
+rendu commun).
+
 ## Idées futures
 
+- **Sélection du type de texte (police)** dans les Options : combobox
+  Segoe Print (défaut) / Segoe UI / Ink Free / Consolas, persistée en INI,
+  lue aux 2 points de rendu (texte + caret) au lieu du `"Segoe Print"`
+  codé en dur. **Palier suivant prévu.**
 - **Background custom au clear** : remplacer le blanc par défaut
   (`COLOR_WINDOW`) par une couleur configurable. Extension : permettre
   une image de fond.

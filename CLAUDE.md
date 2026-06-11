@@ -69,7 +69,7 @@ Voir [docs/modifications.md](docs/modifications.md).
 **Version courante : 2.3.0** — strip-down mergé dans `main`.
 
 Acquis :
-- Mode texte (touche `Q`) implémenté en v2.2.0
+- Mode texte (touche `A` depuis le rebind ; `Q` à l'origine) implémenté en v2.2.0
 - Strip-down v2.3.0 : retiré Zoom, Lens, inline-zoom, overlays
   clavier/souris, ripple visualizer, hooks bas-niveau, dialog
   Configure colors. Exe passé de ~400 KB à ~346 KB.
@@ -79,13 +79,13 @@ Acquis :
 - Branches `feature/text-mode` et `feature/strip-down` conservées,
   fusionnées dans `main`
 
-- Thèmes Light/Dark + cycle Transparent via touche `B` (palettes
+- Thèmes Light/Dark + cycle Transparent via touche `Q` (palettes
   parallèles, recolore les annotations).
-- Cadres "tableau" via touche `N` (`feature/board-frames`) : cadre A
+- Cadres "tableau" via touche `Z` (`feature/board-frames`) : cadre A
   (whiteboard clair) ↔ cadre B (slate sombre), dessinés en vectoriel
   GDI+ dans `PaintBoardFrame()`. Cadre peint sous les annotations.
-  Règle de wipe partagée avec `B` : seul le départ depuis Transparent
-  pristine vide les dessins ; B↔N / N↔N / B↔B préservent.
+  Règle de wipe partagée avec `Q` : seul le départ depuis Transparent
+  pristine vide les dessins ; Q↔Z / Z↔Z / Q↔Q préservent.
   Concepts de référence dans `background image/`.
 - Auto-screenshot (`feature/auto-screenshot`) : à la sortie du mode draw
   (Esc ou hotkey) si annotations, capture fond+dessins en PNG sous
@@ -114,6 +114,24 @@ pas un service).
 - ✅ **Police texte plus douce** (`2d63c07`) : Segoe Print + taille par défaut
   plus grande (l'ex-branche `feat/softer-text-font`, intégrée).
 - ✅ **Caret clignotant** en mode texte (`5d2a0dc`).
+
+**LIVRÉ (2026-06-11) — Rebind raccourcis + defaults + lissage.** Branches
+`feature/rebind-shortcuts` puis `feature/text-options-and-defaults`, mergées
+dans `main`. Détail : docs/modifications.md.
+- ✅ **Rebind main gauche** + retrait du mode marqueur. Nouveau mapping :
+  `A`=texte, `W`=erase all, `Q`=fond uni, `Z`=cadre tableau ; `Backspace`
+  undo, `0-9` couleurs, `↑↓`/`←→` épaisseur/couleur, `T` opaque↔alpha,
+  `Esc` sortie. Anciennes `e`/`b`/`n` non liées. Pas d'indicateur de mode
+  (écarté : on est quasi toujours en draw, le mode texte = caret clignotant).
+- ✅ **Caret sur la ligne de base** : le texte repose au bas du caret.
+- ✅ **Rouge au lancement** (`colorindex` non persisté).
+- ✅ **Alpha du texte suit le thème** (semi-transp. clair, plein sombre).
+- ✅ **Lissage du trait** : `DrawCurve` spline cardinale (tension 0.5).
+
+**PROCHAIN CHANTIER — Sélection du type de texte (police) dans les Options.**
+Combobox Segoe Print (défaut) / Segoe UI / Ink Free / Consolas, persistée en
+INI, lue aux 2 points de rendu (texte + caret) au lieu du `"Segoe Print"`
+codé en dur. Sur la branche `feature/text-options-and-defaults`.
 
 **RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les
 deux modes. À chaque publication, fournir : (1) le **portable**
