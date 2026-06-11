@@ -129,9 +129,12 @@ protected:
     void    RenderTextCaret(Gdiplus::Graphics& graphics);
     void    SaveScreenshot();
 
-    static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
-    static WORD          HotKeyControl2HotKey(WORD hk);
-    static WORD          HotKey2HotKeyControl(WORD hk);
+    // Options is a tabbed PropertySheet; one property-page proc per tab.
+    static void             ShowOptionsSheet(HWND hParent);
+    static INT_PTR CALLBACK GeneralPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK DrawPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
+    static WORD             HotKeyControl2HotKey(WORD hk);
+    static WORD             HotKey2HotKeyControl(WORD hk);
 
     // Autostart at logon, backed by the HKCU ...\CurrentVersion\Run key.
     static bool IsAutostartEnabled();

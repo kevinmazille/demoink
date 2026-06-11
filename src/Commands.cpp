@@ -160,7 +160,7 @@ LRESULT CMainWindow::DoCommand(int id)
         case ID_TRAYCONTEXT_OPTIONS:
         {
             UnregisterHotKey(*this, DRAW_HOTKEY);
-            DialogBox(hResource, MAKEINTRESOURCE(IDD_OPTIONS), *this, reinterpret_cast<DLGPROC>(OptionsDlgProc));
+            ShowOptionsSheet(*this);
             RegisterHotKeys();
         }
         break;
