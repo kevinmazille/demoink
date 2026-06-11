@@ -135,8 +135,19 @@ protected:
     static INT_PTR CALLBACK GeneralPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static INT_PTR CALLBACK DrawPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static INT_PTR CALLBACK TextPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK ColorsPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD             HotKeyControl2HotKey(WORD hk);
     static WORD             HotKey2HotKeyControl(WORD hk);
+
+    // Built-in palettes (10 colors each). Used as the fallback when no custom
+    // color is stored in the INI, and as the target of "Reset to defaults".
+    // Light is shared with the Transparent theme; Dark is tuned for black.
+    static constexpr COLORREF DEFAULT_COLORS_LIGHT[10] = {
+        RGB(255, 255, 0), RGB(255, 0, 0), RGB(0, 80, 220), RGB(0, 170, 0), RGB(150, 0, 0),
+        RGB(0, 0, 150), RGB(0, 100, 0), RGB(0, 0, 0), RGB(120, 120, 120), RGB(200, 0, 200)};
+    static constexpr COLORREF DEFAULT_COLORS_DARK[10] = {
+        RGB(255, 255, 0), RGB(255, 140, 0), RGB(255, 90, 90), RGB(0, 220, 255), RGB(220, 150, 80),
+        RGB(255, 120, 150), RGB(140, 180, 255), RGB(255, 255, 255), RGB(180, 180, 180), RGB(120, 255, 120)};
 
     // Text-annotation font: the picker offers this fixed list, and the
     // configured choice falls back to TEXT_FONTS[0] when not installed.

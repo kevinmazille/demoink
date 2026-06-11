@@ -592,40 +592,21 @@ bool CMainWindow::UpdateCursor()
 
 void CMainWindow::ApplyTheme()
 {
-    if (m_theme == Theme::Dark)
+    // Dark uses its own palette tuned for a black background and opaque
+    // strokes; Light and Transparent share one palette and the alpha blend
+    // (only the background fill differs, handled by the caller). Each color
+    // can be overridden via [Colors] in the INI, falling back to the
+    // built-in defaults.
+    const bool      dark     = (m_theme == Theme::Dark);
+    const COLORREF* defaults = dark ? DEFAULT_COLORS_DARK : DEFAULT_COLORS_LIGHT;
+    const wchar_t*  prefix   = dark ? L"dark" : L"light";
+    for (int i = 0; i < 10; ++i)
     {
-        // Palette tuned for legibility on a black background:
-        // 1-2-3 are three maximally distinct primaries (warm/warm/cool) for
-        // quick switching; 4-5-6 are softer variants of each primary;
-        // 7-8-9 are neutrals + an accent green.
-        m_colors[0]    = RGB(255, 255, 0);   // yellow (marker)
-        m_colors[1]    = RGB(255, 140, 0);   // orange — default
-        m_colors[2]    = RGB(255, 90, 90);   // light red
-        m_colors[3]    = RGB(0, 220, 255);   // cyan (pure blue is unreadable on black)
-        m_colors[4]    = RGB(220, 150, 80);  // amber (soft orange)
-        m_colors[5]    = RGB(255, 120, 150); // pink (soft red)
-        m_colors[6]    = RGB(140, 180, 255); // sky blue (soft cyan)
-        m_colors[7]    = RGB(255, 255, 255); // white
-        m_colors[8]    = RGB(180, 180, 180); // light gray
-        m_colors[9]    = RGB(120, 255, 120); // green accent
-        m_currentAlpha = 255;
+        wchar_t key[16] = {0};
+        swprintf_s(key, _countof(key), L"%s%d", prefix, i);
+        m_colors[i] = static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Colors", key, defaults[i]));
     }
-    else
-    {
-        // Light and Transparent share the same palette and alpha; only the
-        // background fill differs (handled by the caller).
-        m_colors[0]    = RGB(255, 255, 0);   // yellow (marker)
-        m_colors[1]    = RGB(255, 0, 0);     // red — default
-        m_colors[2]    = RGB(0, 80, 220);    // blue
-        m_colors[3]    = RGB(0, 170, 0);     // green
-        m_colors[4]    = RGB(150, 0, 0);     // dark red
-        m_colors[5]    = RGB(0, 0, 150);     // dark blue
-        m_colors[6]    = RGB(0, 100, 0);     // dark green
-        m_colors[7]    = RGB(0, 0, 0);       // black
-        m_colors[8]    = RGB(120, 120, 120); // gray
-        m_colors[9]    = RGB(200, 0, 200);   // magenta accent
-        m_currentAlpha = LINE_ALPHA;
-    }
+    m_currentAlpha = dark ? 255 : LINE_ALPHA;
 }
 
 void CMainWindow::RenderAnnotations(Gdiplus::Graphics& graphics)

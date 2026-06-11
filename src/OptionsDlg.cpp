@@ -22,6 +22,7 @@
 #include "MainWindow.h"
 #include "IniSettings.h"
 #include <commctrl.h>
+#include <commdlg.h>
 #include <shellapi.h>
 
 // Builds the tabbed Options dialog as a PropertySheet. Each tab is a child
@@ -30,7 +31,7 @@
 // to the INI once here.
 void CMainWindow::ShowOptionsSheet(HWND hParent)
 {
-    PROPSHEETPAGE psp[3] = {0};
+    PROPSHEETPAGE psp[4] = {0};
 
     psp[0].dwSize      = sizeof(PROPSHEETPAGE);
     psp[0].dwFlags     = PSP_DEFAULT;
@@ -49,6 +50,12 @@ void CMainWindow::ShowOptionsSheet(HWND hParent)
     psp[2].hInstance   = g_hInstance;
     psp[2].pszTemplate = MAKEINTRESOURCE(IDD_OPT_TEXT);
     psp[2].pfnDlgProc  = TextPageProc;
+
+    psp[3].dwSize      = sizeof(PROPSHEETPAGE);
+    psp[3].dwFlags     = PSP_DEFAULT;
+    psp[3].hInstance   = g_hInstance;
+    psp[3].pszTemplate = MAKEINTRESOURCE(IDD_OPT_COLORS);
+    psp[3].pfnDlgProc  = ColorsPageProc;
 
     PROPSHEETHEADER psh = {0};
     psh.dwSize          = sizeof(PROPSHEETHEADER);
@@ -201,6 +208,128 @@ INT_PTR CALLBACK CMainWindow::TextPageProc(HWND hwndDlg, UINT message, WPARAM /*
                 if (size > 256)
                     size = 256;
                 CIniSettings::Instance().SetInt64(L"Text", L"defaultsize", size);
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            }
+        }
+        break;
+    }
+    return FALSE;
+}
+
+// Per-dialog working state for the Colors page: both palettes are edited
+// in memory and only written to the INI on OK (PSN_APPLY). 0 = Light, 1 = Dark.
+struct ColorsPageState
+{
+    COLORREF colors[2][10];
+    int      theme; // which palette the swatches currently show
+};
+
+INT_PTR CALLBACK CMainWindow::ColorsPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    auto* st = reinterpret_cast<ColorsPageState*>(GetWindowLongPtr(hwndDlg, GWLP_USERDATA));
+    switch (message)
+    {
+        case WM_INITDIALOG:
+        {
+            st = new ColorsPageState();
+            for (int t = 0; t < 2; ++t)
+            {
+                const COLORREF* defs   = (t == 1) ? DEFAULT_COLORS_DARK : DEFAULT_COLORS_LIGHT;
+                const wchar_t*  prefix = (t == 1) ? L"dark" : L"light";
+                for (int i = 0; i < 10; ++i)
+                {
+                    wchar_t key[16] = {0};
+                    swprintf_s(key, _countof(key), L"%s%d", prefix, i);
+                    st->colors[t][i] = static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Colors", key, defs[i]));
+                }
+            }
+            st->theme = 0;
+            SetWindowLongPtr(hwndDlg, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(st));
+            CheckRadioButton(hwndDlg, IDC_COLOR_THEME_LIGHT, IDC_COLOR_THEME_DARK, IDC_COLOR_THEME_LIGHT);
+        }
+        break;
+        case WM_DESTROY:
+            delete st;
+            SetWindowLongPtr(hwndDlg, GWLP_USERDATA, 0);
+            break;
+        case WM_DRAWITEM:
+        {
+            auto* dis = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
+            int   idx = static_cast<int>(dis->CtlID) - IDC_SWATCH0;
+            if (st && idx >= 0 && idx < 10)
+            {
+                COLORREF c     = st->colors[st->theme][idx];
+                HBRUSH   brush = CreateSolidBrush(c);
+                FillRect(dis->hDC, &dis->rcItem, brush);
+                DeleteObject(brush);
+                FrameRect(dis->hDC, &dis->rcItem, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+                // index label, readable on either light or dark swatch
+                wchar_t label[4] = {0};
+                swprintf_s(label, _countof(label), L"%d", idx);
+                int lum = (GetRValue(c) * 299 + GetGValue(c) * 587 + GetBValue(c) * 114) / 1000;
+                SetBkMode(dis->hDC, TRANSPARENT);
+                SetTextColor(dis->hDC, lum < 128 ? RGB(255, 255, 255) : RGB(0, 0, 0));
+                DrawText(dis->hDC, label, -1, &dis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                if (dis->itemState & ODS_FOCUS)
+                    DrawFocusRect(dis->hDC, &dis->rcItem);
+                return TRUE;
+            }
+        }
+        break;
+        case WM_COMMAND:
+        {
+            int id = LOWORD(wParam);
+            if (!st)
+                break;
+            if (id == IDC_COLOR_THEME_LIGHT || id == IDC_COLOR_THEME_DARK)
+            {
+                st->theme = (id == IDC_COLOR_THEME_DARK) ? 1 : 0;
+                for (int i = 0; i < 10; ++i)
+                    InvalidateRect(GetDlgItem(hwndDlg, IDC_SWATCH0 + i), nullptr, TRUE);
+            }
+            else if (id == IDC_COLOR_RESET)
+            {
+                const COLORREF* defs = (st->theme == 1) ? DEFAULT_COLORS_DARK : DEFAULT_COLORS_LIGHT;
+                for (int i = 0; i < 10; ++i)
+                {
+                    st->colors[st->theme][i] = defs[i];
+                    InvalidateRect(GetDlgItem(hwndDlg, IDC_SWATCH0 + i), nullptr, TRUE);
+                }
+            }
+            else if (id >= IDC_SWATCH0 && id <= IDC_SWATCH9 && HIWORD(wParam) == BN_CLICKED)
+            {
+                int            idx = id - IDC_SWATCH0;
+                static COLORREF custom[16] = {0};
+                CHOOSECOLOR    cc          = {0};
+                cc.lStructSize             = sizeof(cc);
+                cc.hwndOwner               = hwndDlg;
+                cc.rgbResult               = st->colors[st->theme][idx];
+                cc.lpCustColors            = custom;
+                cc.Flags                   = CC_FULLOPEN | CC_RGBINIT;
+                if (ChooseColor(&cc))
+                {
+                    st->colors[st->theme][idx] = cc.rgbResult;
+                    InvalidateRect(GetDlgItem(hwndDlg, id), nullptr, TRUE);
+                }
+            }
+        }
+        break;
+        case WM_NOTIFY:
+        {
+            auto pnmh = reinterpret_cast<LPNMHDR>(lParam);
+            if (pnmh->code == PSN_APPLY && st)
+            {
+                for (int t = 0; t < 2; ++t)
+                {
+                    const wchar_t* prefix = (t == 1) ? L"dark" : L"light";
+                    for (int i = 0; i < 10; ++i)
+                    {
+                        wchar_t key[16] = {0};
+                        swprintf_s(key, _countof(key), L"%s%d", prefix, i);
+                        CIniSettings::Instance().SetInt64(L"Colors", key, st->colors[t][i]);
+                    }
+                }
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }

@@ -16,6 +16,7 @@
 #define IDD_OPT_GENERAL                 133
 #define IDD_OPT_DRAW                    134
 #define IDD_OPT_TEXT                    135
+#define IDD_OPT_COLORS                  136
 #define IDR_HELP                        132
 #define IDC_WEBLINK                     1002
 #define IDC_HOTKEY_DRAWMODE             1004
@@ -27,6 +28,19 @@
 #define IDC_TEXTSIZE                    1016
 #define IDC_DEFAULTCOLOR                1017
 #define IDC_DEFAULTPENWIDTH             1018
+#define IDC_COLOR_THEME_LIGHT           1019
+#define IDC_COLOR_THEME_DARK            1020
+#define IDC_COLOR_RESET                 1021
+#define IDC_SWATCH0                     1030
+#define IDC_SWATCH1                     1031
+#define IDC_SWATCH2                     1032
+#define IDC_SWATCH3                     1033
+#define IDC_SWATCH4                     1034
+#define IDC_SWATCH5                     1035
+#define IDC_SWATCH6                     1036
+#define IDC_SWATCH7                     1037
+#define IDC_SWATCH8                     1038
+#define IDC_SWATCH9                     1039
 #define ID_TRAYCONTEXT_OPTIONS          32771
 #define ID_TRAYCONTEXT_ABOUT            32772
 #define ID_TRAYCONTEXT_DRAW             32774
@@ -61,9 +75,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        136
+#define _APS_NEXT_RESOURCE_VALUE        137
 #define _APS_NEXT_COMMAND_VALUE         32809
-#define _APS_NEXT_CONTROL_VALUE         1019
+#define _APS_NEXT_CONTROL_VALUE         1040
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

@@ -138,6 +138,27 @@ BEGIN
     LTEXT           "pixels",IDC_STATIC,128,55,40,8
 END
 
+IDD_OPT_COLORS DIALOGEX 0, 0, 235, 140
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | DS_CONTROL
+CAPTION "Colors"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "Click a swatch to change that palette slot (numbers match the 0-9 keys).",IDC_STATIC,7,7,221,8
+    CONTROL         "Light / Transparent",IDC_COLOR_THEME_LIGHT,"Button",BS_AUTORADIOBUTTON | WS_GROUP,7,22,100,10
+    CONTROL         "Dark",IDC_COLOR_THEME_DARK,"Button",BS_AUTORADIOBUTTON,113,22,60,10
+    CONTROL         "",IDC_SWATCH0,"Button",BS_OWNERDRAW | WS_TABSTOP,12,42,36,24
+    CONTROL         "",IDC_SWATCH1,"Button",BS_OWNERDRAW | WS_TABSTOP,54,42,36,24
+    CONTROL         "",IDC_SWATCH2,"Button",BS_OWNERDRAW | WS_TABSTOP,96,42,36,24
+    CONTROL         "",IDC_SWATCH3,"Button",BS_OWNERDRAW | WS_TABSTOP,138,42,36,24
+    CONTROL         "",IDC_SWATCH4,"Button",BS_OWNERDRAW | WS_TABSTOP,180,42,36,24
+    CONTROL         "",IDC_SWATCH5,"Button",BS_OWNERDRAW | WS_TABSTOP,12,72,36,24
+    CONTROL         "",IDC_SWATCH6,"Button",BS_OWNERDRAW | WS_TABSTOP,54,72,36,24
+    CONTROL         "",IDC_SWATCH7,"Button",BS_OWNERDRAW | WS_TABSTOP,96,72,36,24
+    CONTROL         "",IDC_SWATCH8,"Button",BS_OWNERDRAW | WS_TABSTOP,138,72,36,24
+    CONTROL         "",IDC_SWATCH9,"Button",BS_OWNERDRAW | WS_TABSTOP,180,72,36,24
+    PUSHBUTTON      "Reset to defaults",IDC_COLOR_RESET,84,112,90,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -164,6 +185,14 @@ BEGIN
     END
 
     IDD_OPT_TEXT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 133
+    END
+
+    IDD_OPT_COLORS, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 228
