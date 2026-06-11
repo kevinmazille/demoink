@@ -111,6 +111,13 @@ INT_PTR CALLBACK CMainWindow::DrawPageProc(HWND hwndDlg, UINT message, WPARAM /*
             TCHAR buffer[128] = {0};
             _stprintf_s(buffer, _countof(buffer), _T("%ld"), static_cast<DWORD>(fadeSeconds));
             SetWindowText(GetDlgItem(hwndDlg, IDC_FADESECONDS), buffer);
+
+            auto defaultColor = CIniSettings::Instance().GetInt64(L"Draw", L"defaultcolor", 1);
+            _stprintf_s(buffer, _countof(buffer), _T("%ld"), static_cast<DWORD>(defaultColor));
+            SetWindowText(GetDlgItem(hwndDlg, IDC_DEFAULTCOLOR), buffer);
+            auto defaultPen = CIniSettings::Instance().GetInt64(L"Draw", L"defaultpenwidth", 6);
+            _stprintf_s(buffer, _countof(buffer), _T("%ld"), static_cast<DWORD>(defaultPen));
+            SetWindowText(GetDlgItem(hwndDlg, IDC_DEFAULTPENWIDTH), buffer);
         }
         break;
         case WM_NOTIFY:
@@ -123,6 +130,22 @@ INT_PTR CALLBACK CMainWindow::DrawPageProc(HWND hwndDlg, UINT message, WPARAM /*
                 TCHAR buffer[128] = {0};
                 GetWindowText(GetDlgItem(hwndDlg, IDC_FADESECONDS), buffer, _countof(buffer));
                 CIniSettings::Instance().SetString(L"Draw", L"fadeseconds", buffer);
+
+                GetWindowText(GetDlgItem(hwndDlg, IDC_DEFAULTCOLOR), buffer, _countof(buffer));
+                int color = _wtoi(buffer);
+                if (color < 0)
+                    color = 0;
+                if (color > 9)
+                    color = 9;
+                CIniSettings::Instance().SetInt64(L"Draw", L"defaultcolor", color);
+
+                GetWindowText(GetDlgItem(hwndDlg, IDC_DEFAULTPENWIDTH), buffer, _countof(buffer));
+                int pen = _wtoi(buffer);
+                if (pen < 1)
+                    pen = 1;
+                if (pen > 32)
+                    pen = 32;
+                CIniSettings::Instance().SetInt64(L"Draw", L"defaultpenwidth", pen);
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }

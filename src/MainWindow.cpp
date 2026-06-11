@@ -90,8 +90,10 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         {
             m_hwnd = hwnd;
             RegisterHotKeys();
-            m_colorIndex      = 1; // always start on red; not persisted across launches
-            m_currentPenWidth = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"currentpenwidth", 6));
+            // Defaults applied at every launch (configurable in Options > Draw);
+            // not carried over from the previous session.
+            m_colorIndex      = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"defaultcolor", 1));
+            m_currentPenWidth = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"defaultpenwidth", 6));
             ApplyTheme();
         }
         break;
@@ -529,7 +531,6 @@ bool CMainWindow::EndPresentationMode()
         DestroyCursor(m_hCursor);
         m_hCursor = nullptr;
     }
-    CIniSettings::Instance().SetInt64(L"Draw", L"currentpenwidth", m_currentPenWidth);
     return true;
 }
 
