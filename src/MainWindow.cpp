@@ -721,8 +721,18 @@ void CMainWindow::RenderTextCaret(Gdiplus::Graphics& graphics)
         graphics.MeasureString(line.text.c_str(), static_cast<INT>(line.text.size()), &font, origin, &bounds);
         caretX += bounds.Width;
     }
-    Gdiplus::REAL caretY      = static_cast<Gdiplus::REAL>(line.lineStartPoint.Y);
-    Gdiplus::REAL caretHeight = static_cast<Gdiplus::REAL>(line.fontSize);
+    // Anchor the caret's bottom on the text baseline so the text sits at the
+    // bottom of the caret, not the top. DrawString places the top of the em
+    // box at lineStartPoint.Y and the baseline one ascent below it; a caret of
+    // full fontSize height would otherwise run past the baseline into the
+    // descent space and leave the text floating at the top.
+    const Gdiplus::REAL emHeight  = fontFamily.GetEmHeight(Gdiplus::FontStyleRegular);
+    const Gdiplus::REAL ascent    = fontFamily.GetCellAscent(Gdiplus::FontStyleRegular);
+    const Gdiplus::REAL scale     = static_cast<Gdiplus::REAL>(line.fontSize) / emHeight;
+    const Gdiplus::REAL baselineY = static_cast<Gdiplus::REAL>(line.lineStartPoint.Y) + ascent * scale;
+
+    Gdiplus::REAL caretHeight = ascent * scale;
+    Gdiplus::REAL caretY      = baselineY - caretHeight;
 
     Gdiplus::Color color;
     color.SetValue(Gdiplus::Color::MakeARGB(255, GetRValue(m_colors[line.colorIndex]), GetGValue(m_colors[line.colorIndex]), GetBValue(m_colors[line.colorIndex])));
