@@ -98,24 +98,22 @@ Acquis :
   `Pictures\DemoInk`). Noms de fichiers source gardés pour les merges
   upstream. Build vérifié → `bin/Release/x64/DemoInk.exe`.
 
-**CHANTIER EN COURS (2026-06-08) — Installable + autostart au démarrage Windows.**
-Plan : `~/.claude/plans/starry-munching-kitten.md`. Cible = ouverture de session
-(app tray, pas un service). Branches **chaînées, pas encore mergées/poussées** :
-`main` → `feat/softer-text-font` → `feature/single-instance` →
-`feature/autostart-toggle` (courante).
-- ✅ **Palier 1** (`feature/single-instance`, `7e2d9c1`) : mutex nommé
-  `DemoInk_SingleInstance_Mutex` en tête de `wWinMain`. Build + test OK.
-- ✅ **Palier 2** (`feature/autostart-toggle`, `a434d90`) : item tray
-  « Start with Windows » (`ID_TRAYCONTEXT_AUTOSTART`=32808), helpers
+**LIVRÉ (2026-06-08) — Installable + autostart au démarrage Windows.**
+Tout est mergé et poussé sur `main`. Cible = ouverture de session (app tray,
+pas un service).
+- ✅ **Single-instance** (`7e2d9c1`) : mutex nommé
+  `DemoInk_SingleInstance_Mutex` en tête de `wWinMain`.
+- ✅ **Autostart** (`a434d90`) : item tray « Start with Windows »
+  (`ID_TRAYCONTEXT_AUTOSTART`=32808), helpers
   `IsAutostartEnabled()`/`SetAutostart()` (clé `HKCU\...\Run`, valeur `DemoInk`).
-  Build OK ; test visuel de la coche à confirmer par Kevin.
-- ✅ **Palier 3** (`feature/installer`, `2489072`) : `installer/DemoInk.iss`
-  Inno Setup, install per-user `{localappdata}\Programs\DemoInk`, AppVersion
-  2.3.0, task autostart (même valeur Run `DemoInk`), pas de redist (CRT
-  statique). Build : `"…\Inno Setup 6\ISCC.exe" installer\DemoInk.iss` →
-  `installer\Output\DemoInk-2.3.0-Setup.exe`. Test install/désinstall propre OK.
-- Ensuite : merger la chaîne dans `main` (décider d'abord le sort de
-  `feat/softer-text-font` après test police), push.
+- ✅ **Installeur** (`2489072`) : `installer/DemoInk.iss` Inno Setup, install
+  per-user `{localappdata}\Programs\DemoInk`, AppVersion 2.3.0, task autostart
+  (même valeur Run `DemoInk`), pas de redist (CRT statique). Build :
+  `"…\Inno Setup 6\ISCC.exe" installer\DemoInk.iss` →
+  `installer\Output\DemoInk-2.3.0-Setup.exe`.
+- ✅ **Police texte plus douce** (`2d63c07`) : Segoe Print + taille par défaut
+  plus grande (l'ex-branche `feat/softer-text-font`, intégrée).
+- ✅ **Caret clignotant** en mode texte (`5d2a0dc`).
 
 **RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les
 deux modes. À chaque publication, fournir : (1) le **portable**
@@ -124,12 +122,14 @@ deux modes. À chaque publication, fournir : (1) le **portable**
 `build.bat`). Bumper `MyAppVersion` dans le `.iss` au changement de version.
 Détail : docs/modifications.md.
 
-Idées plus tard :
-- **Renommer le repo GitHub** `kevinmazille/demohelper` → `demoink` (par Kevin),
-  puis remote `origin`. Avant le post LinkedIn #5 "DemoInk".
-- Renommer le dossier local `perso/demohelper` → `demoink` (vérifier `includeIf`).
-- Re-bind des raccourcis autour de Ctrl+Shift + repère visuel du mode courant.
-  Voir docs/modifications.md.
+**PROCHAIN CHANTIER — Re-bind des raccourcis + repère visuel du mode courant.**
+Regrouper les raccourcis autour de Ctrl+Shift et afficher un indicateur du
+mode actif. Voir docs/modifications.md.
+
+Acquis (renommages faits) :
+- ✅ Repo GitHub renommé `kevinmazille/demoink` ; remote `origin` =
+  `https://kevinmazille@github.com/kevinmazille/demoink.git`.
+- ✅ Dossier local renommé `perso/demoink`.
 
 ## Pièges à connaître (env de l'utilisateur)
 
@@ -150,7 +150,7 @@ installé. Si erreur `cl.exe not found`, relancer
 
 ## Remotes git
 
-- `origin` → fork personnel (`kevinmazille/demohelper`)
+- `origin` → fork personnel (`kevinmazille/demoink`)
 - `upstream` → repo original (`stefankueng/demohelper`)
 
 Pour récupérer les màj amont :
