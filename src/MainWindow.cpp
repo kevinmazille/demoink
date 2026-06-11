@@ -645,7 +645,10 @@ void CMainWindow::RenderAnnotations(Gdiplus::Graphics& graphics)
                 graphics.FillEllipse(&brush, line.points[0].X - halfPenWidth, line.points[0].Y - halfPenWidth, line.penWidth, line.penWidth);
             }
             else
-                graphics.DrawLines(&pen, line.points.data(), static_cast<int>(line.points.size()));
+                // Cardinal spline through the captured points: smooths the
+                // polyline so fast strokes don't show angular segments. Low
+                // tension keeps sharp corners from ballooning.
+                graphics.DrawCurve(&pen, line.points.data(), static_cast<int>(line.points.size()), 0.5f);
         }
         else
         {
