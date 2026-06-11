@@ -181,7 +181,7 @@ LRESULT CMainWindow::DoCommand(int id)
                 line.lineType       = LineType::Text;
                 line.colorIndex     = m_colorIndex;
                 line.penWidth       = m_currentPenWidth;
-                line.alpha          = 255;
+                line.alpha          = m_currentAlpha; // follow theme like strokes: alpha on Transparent/Light, opaque on Dark
                 line.fontSize       = m_currentPenWidth * 5;
                 line.lineStartPoint = Gdiplus::Point(pt.x, pt.y);
                 m_drawLines.push_back(line);
