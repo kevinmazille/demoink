@@ -393,12 +393,56 @@ espace les `WM_MOUSEMOVE`). Remplacé par une **spline cardinale**
 angles serrés. S'applique au rendu live **et** aux screenshots (chemin de
 rendu commun).
 
+## Réalisé : Options à onglets + réglages produit (`feature/options-tabs`)
+
+Cap assumé : DemoInk passe d'outil perso à **produit publiable**. Le dialog
+Options unique devient un **PropertySheet à onglets** (Win32 natif), pour que
+les réglages grandissent par catégorie. Fait par paliers (un build + un
+commit chacun).
+
+### Palier 0 — Squelette à onglets
+`IDD_OPTIONS` (dialog unique) → PropertySheet avec une *property page* par
+onglet (`ShowOptionsSheet` + une proc par page dans `OptionsDlg.cpp`). Les 3
+réglages existants répartis sur **General** (moniteur, lien crédit upstream)
+et **Draw** (hotkey, fade seconds). Chaque page persiste sur `PSN_APPLY` ;
+sauvegarde INI une fois à la fermeture. `ICC_TAB_CLASSES` ajouté à l'init
+comctl32. Comportement inchangé.
+
+### Palier 1 — Onglet Text
+Combobox police (liste figée Segoe Print / Segoe UI / Ink Free / Consolas)
++ taille par défaut. Chaque `DrawLine` stocke son `fontName` (comme
+`fontSize`/`colorIndex`), lu depuis l'INI à l'entrée en mode texte ; les 2
+points de rendu (texte + caret) l'utilisent au lieu du `"Segoe Print"` codé
+en dur. `ResolveTextFont()` retombe sur Segoe Print si la police stockée
+n'est pas installée. Taille initiale = `Text/defaultsize` (défaut 30) au lieu
+de `penWidth*5`.
+
+### Palier 2 — Onglet Draw : défauts au lancement
+Couleur (index palette 0-9) et épaisseur de départ configurables
+(`Draw/defaultcolor`, `Draw/defaultpenwidth`), lues au `WM_CREATE`. On arrête
+de persister la dernière épaisseur utilisée → l'app repart toujours des
+défauts configurés (même modèle que le rouge par défaut). Valeurs out-of-box
+inchangées (couleur 1 = rouge, épaisseur 6).
+
+### Palier 3 — Onglet Colors : palettes éditables
+10 pastilles owner-drawn (numérotées 0-9), toggle **Light/Dark**, bouton
+**Reset to defaults**. Clic sur une pastille → `ChooseColor` Windows ; édition
+en mémoire, écrite dans `[Colors]` de l'INI sur OK. `ApplyTheme` devient
+data-driven : lit chaque slot depuis l'INI, fallback sur les constantes
+`DEFAULT_COLORS_LIGHT/DARK` (qui servent aussi au reset). Les nouvelles
+couleurs s'appliquent à la prochaine entrée en mode draw.
+
 ## Idées futures
 
-- **Sélection du type de texte (police)** dans les Options : combobox
-  Segoe Print (défaut) / Segoe UI / Ink Free / Consolas, persistée en INI,
-  lue aux 2 points de rendu (texte + caret) au lieu du `"Segoe Print"`
-  codé en dur. **Palier suivant prévu.**
+- **Onglet Screenshot** : rendre l'auto-capture désactivable, dossier racine
+  configurable, détection Meet optionnelle. Le plus utile pour la diffusion
+  (aujourd'hui codé en dur pour l'usage de Kevin : Google Meet, arbo
+  « Par client / Par date », `Pictures\DemoInk`).
+- **Onglet Shortcuts** : laisser rebinder certaines touches. Implique de
+  passer la table d'accélérateurs de statique (`LoadAccelerators`) à
+  dynamique (`CreateAcceleratorTable` depuis l'INI). Disposition clavier
+  (AZERTY/QWERTY) explicitement hors scope : juste « réassigner une action à
+  une touche ».
 - **Background custom au clear** : remplacer le blanc par défaut
   (`COLOR_WINDOW`) par une couleur configurable. Extension : permettre
   une image de fond.

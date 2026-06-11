@@ -128,10 +128,30 @@ dans `main`. Détail : docs/modifications.md.
 - ✅ **Alpha du texte suit le thème** (semi-transp. clair, plein sombre).
 - ✅ **Lissage du trait** : `DrawCurve` spline cardinale (tension 0.5).
 
-**PROCHAIN CHANTIER — Sélection du type de texte (police) dans les Options.**
-Combobox Segoe Print (défaut) / Segoe UI / Ink Free / Consolas, persistée en
-INI, lue aux 2 points de rendu (texte + caret) au lieu du `"Segoe Print"`
-codé en dur. Sur la branche `feature/text-options-and-defaults`.
+**LIVRÉ (2026-06-11) — Options à onglets + réglages produit.** Branche
+`feature/options-tabs`, mergée dans `main`. Cap assumé : DemoInk devient un
+**produit publiable** (pas juste l'outil perso). Détail : docs/modifications.md.
+Le dialog Options unique est devenu un **PropertySheet à onglets** Win32.
+- ✅ **Palier 0** — squelette onglets General/Draw (refactor, comportement
+  inchangé) ; `ICC_TAB_CLASSES` ajouté.
+- ✅ **Palier 1** — onglet **Text** : police (Segoe Print/UI, Ink Free,
+  Consolas) + taille par défaut ; `DrawLine.fontName` ; `ResolveTextFont()`
+  fallback Segoe Print.
+- ✅ **Palier 2** — onglet **Draw** : couleur (index 0-9) + épaisseur par
+  défaut au lancement (`Draw/defaultcolor` / `defaultpenwidth`) ; épaisseur
+  non persistée d'une session à l'autre.
+- ✅ **Palier 3** — onglet **Colors** : palettes Light/Dark éditables (10
+  pastilles, `ChooseColor`, Reset). `ApplyTheme` data-driven (`[Colors]` INI
+  + fallback `DEFAULT_COLORS_LIGHT/DARK`).
+
+**PROCHAINS CHANTIERS (onglets restants) :**
+- **Screenshot** : auto-capture désactivable, dossier racine configurable,
+  détection Meet optionnelle (dé-personnalise l'app — aujourd'hui hardcodé
+  pour l'usage Meet/`Pictures\DemoInk` de Kevin).
+- **Shortcuts** (le plus lourd) : rebinder certaines touches → table
+  d'accélérateurs dynamique (`CreateAcceleratorTable` depuis l'INI au lieu de
+  `LoadAccelerators`). Disposition AZERTY/QWERTY **hors scope** (juste
+  réassigner action↔touche).
 
 **RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les
 deux modes. À chaque publication, fournir : (1) le **portable**
