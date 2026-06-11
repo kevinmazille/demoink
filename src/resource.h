@@ -15,6 +15,7 @@
 #define IDD_OPTIONS                     129
 #define IDD_OPT_GENERAL                 133
 #define IDD_OPT_DRAW                    134
+#define IDD_OPT_TEXT                    135
 #define IDR_HELP                        132
 #define IDC_WEBLINK                     1002
 #define IDC_HOTKEY_DRAWMODE             1004
@@ -22,6 +23,8 @@
 #define IDC_CURRENTMONITOR              1008
 #define IDC_ALLMONITORS                 1009
 #define IDC_SYSLINK1                    1012
+#define IDC_TEXTFONT                    1015
+#define IDC_TEXTSIZE                    1016
 #define ID_TRAYCONTEXT_OPTIONS          32771
 #define ID_TRAYCONTEXT_ABOUT            32772
 #define ID_TRAYCONTEXT_DRAW             32774
@@ -56,9 +59,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        135
+#define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         32809
-#define _APS_NEXT_CONTROL_VALUE         1015
+#define _APS_NEXT_CONTROL_VALUE         1017
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

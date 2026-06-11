@@ -30,7 +30,7 @@
 // to the INI once here.
 void CMainWindow::ShowOptionsSheet(HWND hParent)
 {
-    PROPSHEETPAGE psp[2] = {0};
+    PROPSHEETPAGE psp[3] = {0};
 
     psp[0].dwSize      = sizeof(PROPSHEETPAGE);
     psp[0].dwFlags     = PSP_DEFAULT;
@@ -43,6 +43,12 @@ void CMainWindow::ShowOptionsSheet(HWND hParent)
     psp[1].hInstance   = g_hInstance;
     psp[1].pszTemplate = MAKEINTRESOURCE(IDD_OPT_DRAW);
     psp[1].pfnDlgProc  = DrawPageProc;
+
+    psp[2].dwSize      = sizeof(PROPSHEETPAGE);
+    psp[2].dwFlags     = PSP_DEFAULT;
+    psp[2].hInstance   = g_hInstance;
+    psp[2].pszTemplate = MAKEINTRESOURCE(IDD_OPT_TEXT);
+    psp[2].pfnDlgProc  = TextPageProc;
 
     PROPSHEETHEADER psh = {0};
     psh.dwSize          = sizeof(PROPSHEETHEADER);
@@ -117,6 +123,61 @@ INT_PTR CALLBACK CMainWindow::DrawPageProc(HWND hwndDlg, UINT message, WPARAM /*
                 TCHAR buffer[128] = {0};
                 GetWindowText(GetDlgItem(hwndDlg, IDC_FADESECONDS), buffer, _countof(buffer));
                 CIniSettings::Instance().SetString(L"Draw", L"fadeseconds", buffer);
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            }
+        }
+        break;
+    }
+    return FALSE;
+}
+
+std::wstring CMainWindow::ResolveTextFont()
+{
+    std::wstring        font = CIniSettings::Instance().GetString(L"Text", L"font", TEXT_FONTS[0]);
+    Gdiplus::FontFamily family(font.c_str());
+    if (family.IsAvailable())
+        return font;
+    return TEXT_FONTS[0]; // stored font not installed -> safe default
+}
+
+INT_PTR CALLBACK CMainWindow::TextPageProc(HWND hwndDlg, UINT message, WPARAM /*wParam*/, LPARAM lParam)
+{
+    switch (message)
+    {
+        case WM_INITDIALOG:
+        {
+            HWND hCombo = GetDlgItem(hwndDlg, IDC_TEXTFONT);
+            for (auto* name : TEXT_FONTS)
+                SendMessage(hCombo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(name));
+            std::wstring font = CIniSettings::Instance().GetString(L"Text", L"font", TEXT_FONTS[0]);
+            if (SendMessage(hCombo, CB_SELECTSTRING, static_cast<WPARAM>(-1), reinterpret_cast<LPARAM>(font.c_str())) == CB_ERR)
+                SendMessage(hCombo, CB_SETCURSEL, 0, 0);
+
+            auto  size        = CIniSettings::Instance().GetInt64(L"Text", L"defaultsize", 30);
+            TCHAR buffer[32]  = {0};
+            _stprintf_s(buffer, _countof(buffer), _T("%ld"), static_cast<DWORD>(size));
+            SetWindowText(GetDlgItem(hwndDlg, IDC_TEXTSIZE), buffer);
+        }
+        break;
+        case WM_NOTIFY:
+        {
+            auto pnmh = reinterpret_cast<LPNMHDR>(lParam);
+            if (pnmh->code == PSN_APPLY)
+            {
+                HWND hCombo = GetDlgItem(hwndDlg, IDC_TEXTFONT);
+                int  sel    = static_cast<int>(SendMessage(hCombo, CB_GETCURSEL, 0, 0));
+                if (sel >= 0 && sel < static_cast<int>(_countof(TEXT_FONTS)))
+                    CIniSettings::Instance().SetString(L"Text", L"font", TEXT_FONTS[sel]);
+
+                TCHAR buffer[32] = {0};
+                GetWindowText(GetDlgItem(hwndDlg, IDC_TEXTSIZE), buffer, _countof(buffer));
+                int size = _wtoi(buffer);
+                if (size < 8)
+                    size = 8;
+                if (size > 256)
+                    size = 256;
+                CIniSettings::Instance().SetInt64(L"Text", L"defaultsize", size);
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }

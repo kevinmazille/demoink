@@ -182,7 +182,8 @@ LRESULT CMainWindow::DoCommand(int id)
                 line.colorIndex     = m_colorIndex;
                 line.penWidth       = m_currentPenWidth;
                 line.alpha          = m_currentAlpha; // follow theme like strokes: alpha on Transparent/Light, opaque on Dark
-                line.fontSize       = m_currentPenWidth * 5;
+                line.fontSize       = static_cast<int>(CIniSettings::Instance().GetInt64(L"Text", L"defaultsize", 30));
+                line.fontName       = ResolveTextFont();
                 line.lineStartPoint = Gdiplus::Point(pt.x, pt.y);
                 m_drawLines.push_back(line);
 

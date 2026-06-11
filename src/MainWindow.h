@@ -82,6 +82,7 @@ public:
 
     std::wstring text;
     int          fontSize = 24;
+    std::wstring fontName = L"Segoe Print";
 };
 
 class CMainWindow : public CWindow
@@ -133,8 +134,16 @@ protected:
     static void             ShowOptionsSheet(HWND hParent);
     static INT_PTR CALLBACK GeneralPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static INT_PTR CALLBACK DrawPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK TextPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD             HotKeyControl2HotKey(WORD hk);
     static WORD             HotKey2HotKeyControl(WORD hk);
+
+    // Text-annotation font: the picker offers this fixed list, and the
+    // configured choice falls back to TEXT_FONTS[0] when not installed.
+    static constexpr const wchar_t* TEXT_FONTS[] = {L"Segoe Print", L"Segoe UI", L"Ink Free", L"Consolas"};
+    // Reads Text/font from the INI and returns an installed family name,
+    // falling back to TEXT_FONTS[0] if the stored one is unavailable.
+    static std::wstring ResolveTextFont();
 
     // Autostart at logon, backed by the HKCU ...\CurrentVersion\Run key.
     static bool IsAutostartEnabled();

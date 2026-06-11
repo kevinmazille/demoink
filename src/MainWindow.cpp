@@ -689,7 +689,7 @@ void CMainWindow::RenderAnnotations(Gdiplus::Graphics& graphics)
                 case LineType::Text:
                     if (!line.text.empty() && (line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0))
                     {
-                        Gdiplus::FontFamily fontFamily(L"Segoe Print");
+                        Gdiplus::FontFamily fontFamily(line.fontName.c_str());
                         Gdiplus::Font       font(&fontFamily, static_cast<Gdiplus::REAL>(line.fontSize), Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
                         Gdiplus::SolidBrush brush(color);
                         Gdiplus::PointF     origin(static_cast<Gdiplus::REAL>(line.lineStartPoint.X), static_cast<Gdiplus::REAL>(line.lineStartPoint.Y));
@@ -711,7 +711,7 @@ void CMainWindow::RenderTextCaret(Gdiplus::Graphics& graphics)
     if (line.lineType != LineType::Text)
         return;
 
-    Gdiplus::FontFamily fontFamily(L"Segoe Print");
+    Gdiplus::FontFamily fontFamily(line.fontName.c_str());
     Gdiplus::Font       font(&fontFamily, static_cast<Gdiplus::REAL>(line.fontSize), Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
 
     // Caret sits at the end of the text already typed (or at the origin if empty).
