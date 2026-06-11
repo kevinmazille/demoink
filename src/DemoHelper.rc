@@ -159,6 +159,19 @@ BEGIN
     PUSHBUTTON      "Reset to defaults",IDC_COLOR_RESET,84,112,90,14
 END
 
+IDD_OPT_SCREENSHOT DIALOGEX 0, 0, 235, 140
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | DS_CONTROL
+CAPTION "Screenshot"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    CONTROL         "Auto-save a PNG when leaving draw mode (if anything was drawn)",IDC_SHOT_ENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,9,221,10
+    CONTROL         "Name captures after the active Google Meet tab (filed under ""By client"")",IDC_SHOT_MEETDETECT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,25,221,18
+    LTEXT           "Save folder (blank = Pictures\\DemoInk):",IDC_STATIC,7,52,221,8
+    EDITTEXT        IDC_SHOT_FOLDER,7,64,167,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_SHOT_BROWSE,178,64,50,14
+    LTEXT           "Captures are filed under By date\\YYYY-MM-DD, plus By client when a Meet name is found.",IDC_STATIC,7,86,221,18
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -193,6 +206,14 @@ BEGIN
     END
 
     IDD_OPT_COLORS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 133
+    END
+
+    IDD_OPT_SCREENSHOT, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 228

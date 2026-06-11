@@ -951,6 +951,10 @@ void CMainWindow::SaveScreenshot()
     if (m_drawLines.empty())
         return;
 
+    // Auto-capture is opt-out (Options > Screenshot).
+    if (CIniSettings::Instance().GetInt64(L"Screenshot", L"enabled", 1) == 0)
+        return;
+
     int cx = m_rcScreen.right - m_rcScreen.left;
     int cy = m_rcScreen.bottom - m_rcScreen.top;
     if (cx <= 0 || cy <= 0)
@@ -970,13 +974,18 @@ void CMainWindow::SaveScreenshot()
         RenderAnnotations(graphics);
     }
 
-    // Build the root folder: %USERPROFILE%\Pictures\DemoInk
-    std::wstring baseDir;
-    PWSTR        picturesPath = nullptr;
-    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Pictures, 0, nullptr, &picturesPath)))
+    // Root folder: the configured one, else %USERPROFILE%\Pictures\DemoInk.
+    std::wstring baseDir = CIniSettings::Instance().GetString(L"Screenshot", L"folder", L"");
+    if (baseDir.empty())
     {
-        baseDir = picturesPath;
-        CoTaskMemFree(picturesPath);
+        PWSTR picturesPath = nullptr;
+        if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Pictures, 0, nullptr, &picturesPath)))
+        {
+            baseDir = picturesPath;
+            CoTaskMemFree(picturesPath);
+        }
+        if (!baseDir.empty())
+            baseDir += L"\\DemoInk";
     }
     if (baseDir.empty())
     {
@@ -986,7 +995,6 @@ void CMainWindow::SaveScreenshot()
         ReleaseDC(nullptr, hScreenDC);
         return;
     }
-    baseDir += L"\\DemoInk";
 
     SYSTEMTIME st;
     GetLocalTime(&st);
@@ -994,7 +1002,11 @@ void CMainWindow::SaveScreenshot()
     swprintf_s(ymdDash, L"%04d-%02d-%02d", st.wYear, st.wMonth, st.wDay);
     swprintf_s(hms, L"%02d-%02d-%02d.png", st.wHour, st.wMinute, st.wSecond);
 
-    std::wstring client = GetMeetName();
+    // Client name comes from the active Google Meet tab, unless detection is
+    // turned off in Options (then captures are filed by date only).
+    std::wstring client;
+    if (CIniSettings::Instance().GetInt64(L"Screenshot", L"meetdetect", 1) != 0)
+        client = GetMeetName();
 
     // Encode once into a reusable Gdiplus::Bitmap, then save to each tree.
     CLSID pngClsid;
@@ -1002,20 +1014,20 @@ void CMainWindow::SaveScreenshot()
     {
         Gdiplus::Bitmap bitmap(hBmp, nullptr);
 
-        // Tree 2 — by date: Par date\YYYY-MM-DD\[<client>\]HH-MM-SS.png
+        // Tree 2 — by date: By date\YYYY-MM-DD\[<client>\]HH-MM-SS.png
         // Always written (client optional). This is the fallback when no
-        // Meet name is detected.
-        std::wstring byDate = baseDir + L"\\Par date\\" + ymdDash;
+        // Meet name is detected or detection is off.
+        std::wstring byDate = baseDir + L"\\By date\\" + ymdDash;
         if (!client.empty())
             byDate += L"\\" + client;
         EnsureDirectory(byDate);
         bitmap.Save((byDate + L"\\" + hms).c_str(), &pngClsid, nullptr);
 
-        // Tree 1 — by client: Par client\<client>\YYYY-MM-DD\HH-MM-SS.png
+        // Tree 1 — by client: By client\<client>\YYYY-MM-DD\HH-MM-SS.png
         // Only written when a client name was detected.
         if (!client.empty())
         {
-            std::wstring byClient = baseDir + L"\\Par client\\" + client + L"\\" + ymdDash;
+            std::wstring byClient = baseDir + L"\\By client\\" + client + L"\\" + ymdDash;
             EnsureDirectory(byClient);
             bitmap.Save((byClient + L"\\" + hms).c_str(), &pngClsid, nullptr);
         }

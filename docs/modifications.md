@@ -443,6 +443,12 @@ couleurs s'appliquent à la prochaine entrée en mode draw.
   dynamique (`CreateAcceleratorTable` depuis l'INI). Disposition clavier
   (AZERTY/QWERTY) explicitement hors scope : juste « réassigner une action à
   une touche ».
+- **Molette = toujours la taille** : en mode draw, la molette nue cycle
+  aujourd'hui les **couleurs** (et `Ctrl+molette` = épaisseur). Kevin veut
+  que la molette nue change **toujours la taille** (épaisseur en draw, déjà
+  la police en mode texte). À trancher à l'implémentation : où mettre le
+  cycle couleur (le basculer sur `Ctrl+molette`, ou s'appuyer uniquement sur
+  `←/→` et `0-9`). Voir `WM_MOUSEWHEEL` dans `MainWindow.cpp`.
 - **Background custom au clear** : remplacer le blanc par défaut
   (`COLOR_WINDOW`) par une couleur configurable. Extension : permettre
   une image de fond.

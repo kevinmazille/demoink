@@ -24,6 +24,7 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
+#include <shlobj.h>
 
 // Builds the tabbed Options dialog as a PropertySheet. Each tab is a child
 // property page; every page reads its settings on WM_INITDIALOG and writes
@@ -31,7 +32,7 @@
 // to the INI once here.
 void CMainWindow::ShowOptionsSheet(HWND hParent)
 {
-    PROPSHEETPAGE psp[4] = {0};
+    PROPSHEETPAGE psp[5] = {0};
 
     psp[0].dwSize      = sizeof(PROPSHEETPAGE);
     psp[0].dwFlags     = PSP_DEFAULT;
@@ -56,6 +57,12 @@ void CMainWindow::ShowOptionsSheet(HWND hParent)
     psp[3].hInstance   = g_hInstance;
     psp[3].pszTemplate = MAKEINTRESOURCE(IDD_OPT_COLORS);
     psp[3].pfnDlgProc  = ColorsPageProc;
+
+    psp[4].dwSize      = sizeof(PROPSHEETPAGE);
+    psp[4].dwFlags     = PSP_DEFAULT;
+    psp[4].hInstance   = g_hInstance;
+    psp[4].pszTemplate = MAKEINTRESOURCE(IDD_OPT_SCREENSHOT);
+    psp[4].pfnDlgProc  = ScreenshotPageProc;
 
     PROPSHEETHEADER psh = {0};
     psh.dwSize          = sizeof(PROPSHEETHEADER);
@@ -330,6 +337,54 @@ INT_PTR CALLBACK CMainWindow::ColorsPageProc(HWND hwndDlg, UINT message, WPARAM 
                         CIniSettings::Instance().SetInt64(L"Colors", key, st->colors[t][i]);
                     }
                 }
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            }
+        }
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK CMainWindow::ScreenshotPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+        case WM_INITDIALOG:
+        {
+            CheckDlgButton(hwndDlg, IDC_SHOT_ENABLED, CIniSettings::Instance().GetInt64(L"Screenshot", L"enabled", 1) ? BST_CHECKED : BST_UNCHECKED);
+            CheckDlgButton(hwndDlg, IDC_SHOT_MEETDETECT, CIniSettings::Instance().GetInt64(L"Screenshot", L"meetdetect", 1) ? BST_CHECKED : BST_UNCHECKED);
+            std::wstring folder = CIniSettings::Instance().GetString(L"Screenshot", L"folder", L"");
+            SetWindowText(GetDlgItem(hwndDlg, IDC_SHOT_FOLDER), folder.c_str());
+        }
+        break;
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDC_SHOT_BROWSE)
+            {
+                wchar_t      path[MAX_PATH] = {0};
+                BROWSEINFO   bi             = {0};
+                bi.hwndOwner                = hwndDlg;
+                bi.lpszTitle                = L"Choose where to save screenshots";
+                bi.ulFlags                  = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX;
+                LPITEMIDLIST pidl           = SHBrowseForFolder(&bi);
+                if (pidl)
+                {
+                    if (SHGetPathFromIDList(pidl, path))
+                        SetWindowText(GetDlgItem(hwndDlg, IDC_SHOT_FOLDER), path);
+                    CoTaskMemFree(pidl);
+                }
+            }
+            break;
+        case WM_NOTIFY:
+        {
+            auto pnmh = reinterpret_cast<LPNMHDR>(lParam);
+            if (pnmh->code == PSN_APPLY)
+            {
+                CIniSettings::Instance().SetInt64(L"Screenshot", L"enabled", IsDlgButtonChecked(hwndDlg, IDC_SHOT_ENABLED) ? 1 : 0);
+                CIniSettings::Instance().SetInt64(L"Screenshot", L"meetdetect", IsDlgButtonChecked(hwndDlg, IDC_SHOT_MEETDETECT) ? 1 : 0);
+                wchar_t buffer[MAX_PATH] = {0};
+                GetWindowText(GetDlgItem(hwndDlg, IDC_SHOT_FOLDER), buffer, _countof(buffer));
+                CIniSettings::Instance().SetString(L"Screenshot", L"folder", buffer);
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }
