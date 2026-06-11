@@ -101,10 +101,6 @@ public:
         , m_lineStartShiftPoint({})
         , m_hCursor(nullptr)
         , m_hPreviousCursor(nullptr)
-        , m_bMarker(false)
-        , m_oldPenWidth(6)
-        , m_oldColorIndex(0)
-        , m_oldAlpha(0)
         , m_rcScreen({0})
     {
         SetWindowTitle(static_cast<LPCTSTR>(ResString(hResource, IDS_APP_TITLE)));
@@ -166,11 +162,6 @@ protected:
 
     HCURSOR m_hCursor;
     HCURSOR m_hPreviousCursor;
-
-    bool m_bMarker;
-    int  m_oldPenWidth;
-    int  m_oldColorIndex;
-    BYTE m_oldAlpha;
 
     bool       m_bTextMode    = false;
     bool       m_caretVisible = true; // blink state for the text-mode caret

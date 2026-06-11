@@ -153,29 +153,6 @@ LRESULT CMainWindow::DoCommand(int id)
             m_drawLines.clear();
             RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
             break;
-        case ID_CMD_QUICKTOMARKER:
-            // marker mode - quick way to select the biggest brush size and color yellow
-            if (m_bMarker)
-            {
-                m_currentPenWidth = m_oldPenWidth;
-                m_colorIndex      = m_oldColorIndex;
-                m_currentAlpha    = m_oldAlpha;
-                m_bMarker         = false;
-            }
-            else
-            {
-                m_oldPenWidth   = m_currentPenWidth;
-                m_oldColorIndex = m_colorIndex;
-                m_oldAlpha      = m_currentAlpha;
-
-                m_currentPenWidth = GetSystemMetrics(SM_CXCURSOR);
-                m_colorIndex      = 0;
-                m_currentAlpha    = LINE_ALPHA;
-
-                m_bMarker = true;
-            }
-            UpdateCursor();
-            break;
         case IDM_EXIT:
             Shell_NotifyIcon(NIM_DELETE, &niData);
             ::PostQuitMessage(0);

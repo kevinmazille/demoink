@@ -30,7 +30,6 @@
 #define ID_CMD_NEXTCOLOR                32779
 #define ID_CMD_PREVCOLOR                32780
 #define ID_CMD_CLEARLINES               32781
-#define ID_CMD_QUICKTOMARKER            32782
 #define ID_CMD_TOGGLEROP                32785
 #define ID_TRAYCONTEXT_HELP             32790
 #define ID_CMD_COLOR1                   32793

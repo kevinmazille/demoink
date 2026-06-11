@@ -324,12 +324,51 @@ Procédure release : `build.bat` → recompiler le `.iss` → publier les 2
 fichiers ensemble (ex. mêmes assets d'une release GitHub). Penser à bumper
 `MyAppVersion` dans le `.iss` quand la version change.
 
+## Réalisé : Re-bind des raccourcis main gauche + retrait du marqueur (`feature/rebind-shortcuts`)
+
+Regroupement des actions fréquentes sous la main gauche (touches simples,
+sans Ctrl+Shift à maintenir). **Pas d'indicateur visuel de mode** : on est
+quasi toujours en mode draw, et le mode texte se reconnaît au caret qui
+clignote — l'indicateur initialement envisagé a été écarté.
+
+### Nouveau mapping (mode draw)
+
+| Touche | Action | Ancienne |
+|--------|--------|----------|
+| `A` | Entrer en mode texte | `Q` |
+| `W` | Tout effacer | `E` |
+| `Q` | Fond couleur unie (cycle Transparent→Light→Dark) | `B` |
+| `Z` | Cadre tableau (whiteboard↔slate) | `N` |
+| `Backspace` | Undo dernier objet | inchangé |
+| `Delete` | Retirer le premier objet | inchangé |
+| `0-9` | Couleur directe | inchangé |
+| `↑↓` / `←→` (ou molette) | Épaisseur / couleur | inchangé |
+| `T` | Trait opaque ↔ alpha | inchangé |
+| `Esc` | Sortir du mode | inchangé |
+
+Remap pur : les anciennes touches `e`/`b`/`n` ne font plus rien (pas
+d'alias, pour rester simple). Édité dans la seule table d'accélérateurs
+`DemoHelper.rc` ; aucun handler C++ touché (les `case` switchent sur des
+IDs de commande inchangés).
+
+### Marqueur retiré
+
+Le mode marqueur (`m`, gros pinceau jaune semi-transparent) était peu
+utilisé. Retiré proprement : `case ID_CMD_QUICKTOMARKER`, l'accélérateur
+`m`, le `#define`, et les 4 membres dédiés (`m_bMarker`, `m_oldPenWidth`,
+`m_oldColorIndex`, `m_oldAlpha`). Cohérent avec l'esprit strip-down.
+
+### Fix annexe : caret du mode texte
+
+Le caret clignotant était ancré sur le haut de la cellule de police
+(`lineStartPoint.Y`) alors que `DrawString` réserve un espace vide au-dessus
+des glyphes (internal leading, large pour Segoe Print) → le caret dépassait
+au-dessus du texte. Désormais ancré sur la **ligne de base** : hauteur =
+ascent, bas = baseline, le texte repose au bas du caret. `RenderTextCaret`
+(`MainWindow.cpp`).
+
 ## Idées futures
 
-- **Re-bind des raccourcis autour de Ctrl+Shift** : regrouper les touches
-  les plus utilisées près de la main gauche (zone Ctrl+Shift) pour tout
-  faire d'une main, et afficher un repère visuel de l'état/mode courant
-  quand on commence à taper (savoir où on en est). À concevoir plus tard.
 - **Background custom au clear** : remplacer le blanc par défaut
   (`COLOR_WINDOW`) par une couleur configurable. Extension : permettre
   une image de fond.
