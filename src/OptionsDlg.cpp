@@ -502,7 +502,8 @@ INT_PTR CALLBACK CMainWindow::BackgroundPageProc(HWND hwndDlg, UINT message, WPA
             st->light = BackgroundColor(false);
             st->dark  = BackgroundColor(true);
             SetWindowLongPtr(hwndDlg, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(st));
-            SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), BackgroundImagePath().c_str());
+            SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMG_LIGHT), BoardImagePath(false).c_str());
+            SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMG_DARK), BoardImagePath(true).c_str());
         }
         break;
         case WM_DESTROY:
@@ -553,8 +554,9 @@ INT_PTR CALLBACK CMainWindow::BackgroundPageProc(HWND hwndDlg, UINT message, WPA
                 InvalidateRect(GetDlgItem(hwndDlg, IDC_BG_LIGHT_SWATCH), nullptr, TRUE);
                 InvalidateRect(GetDlgItem(hwndDlg, IDC_BG_DARK_SWATCH), nullptr, TRUE);
             }
-            else if (id == IDC_BG_IMAGE_BROWSE)
+            else if (id == IDC_BG_IMG_LIGHT_BROWSE || id == IDC_BG_IMG_DARK_BROWSE)
             {
+                int          targetEdit     = (id == IDC_BG_IMG_DARK_BROWSE) ? IDC_BG_IMG_DARK : IDC_BG_IMG_LIGHT;
                 wchar_t      file[MAX_PATH] = {0};
                 OPENFILENAME ofn            = {0};
                 ofn.lStructSize             = sizeof(ofn);
@@ -564,11 +566,15 @@ INT_PTR CALLBACK CMainWindow::BackgroundPageProc(HWND hwndDlg, UINT message, WPA
                 ofn.nMaxFile                = _countof(file);
                 ofn.Flags                   = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
                 if (GetOpenFileName(&ofn))
-                    SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), file);
+                    SetWindowText(GetDlgItem(hwndDlg, targetEdit), file);
             }
-            else if (id == IDC_BG_IMAGE_CLEAR)
+            else if (id == IDC_BG_IMG_LIGHT_CLEAR)
             {
-                SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), L"");
+                SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMG_LIGHT), L"");
+            }
+            else if (id == IDC_BG_IMG_DARK_CLEAR)
+            {
+                SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMG_DARK), L"");
             }
         }
         break;
@@ -580,8 +586,10 @@ INT_PTR CALLBACK CMainWindow::BackgroundPageProc(HWND hwndDlg, UINT message, WPA
                 CIniSettings::Instance().SetInt64(L"Background", L"light", st->light);
                 CIniSettings::Instance().SetInt64(L"Background", L"dark", st->dark);
                 wchar_t buffer[MAX_PATH] = {0};
-                GetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), buffer, _countof(buffer));
-                CIniSettings::Instance().SetString(L"Background", L"image", buffer);
+                GetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMG_LIGHT), buffer, _countof(buffer));
+                CIniSettings::Instance().SetString(L"Background", L"imagelight", buffer);
+                GetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMG_DARK), buffer, _countof(buffer));
+                CIniSettings::Instance().SetString(L"Background", L"imagedark", buffer);
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }

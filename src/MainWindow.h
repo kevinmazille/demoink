@@ -59,8 +59,7 @@ enum class BoardStyle
 {
     None   = 0, // no frame (plain B themes)
     FrameA = 1, // light whiteboard: clay liseré, mat, corner ticks
-    FrameB = 2, // dark slate: bevelled frame, clay baseline
-    Image  = 3  // user-provided background image (Background/image), letterboxed
+    FrameB = 2  // dark slate: bevelled frame, clay baseline
 };
 
 class DrawLine
@@ -149,9 +148,10 @@ protected:
     static constexpr COLORREF DEFAULT_BG_LIGHT = RGB(255, 255, 255);
     static constexpr COLORREF DEFAULT_BG_DARK  = RGB(0, 0, 0);
     static COLORREF           BackgroundColor(bool dark);
-    // Path to the optional board-mode background image (Background/image).
-    // Empty when none is set; when set, it adds a third step to the Z cycle.
-    static std::wstring BackgroundImagePath();
+    // Optional board image that replaces the vector frame for one of the two
+    // board styles: imagelight for FrameA (light), imagedark for FrameB (dark).
+    // Empty when none is set, in which case the vector frame is drawn instead.
+    static std::wstring BoardImagePath(bool dark);
 
     // Rebindable single-letter shortcuts for the main draw actions. Each entry
     // maps a command id to its [Shortcuts] INI key, built-in default letter and

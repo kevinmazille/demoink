@@ -174,11 +174,16 @@ BEGIN
     LTEXT           "Dark:",IDC_STATIC,113,21,40,8
     CONTROL         "",IDC_BG_DARK_SWATCH,"Button",BS_OWNERDRAW | WS_TABSTOP,143,18,36,18
     PUSHBUTTON      "Reset",IDC_BG_RESET,16,38,50,14
-    GROUPBOX        "Board image (Z key)",IDC_STATIC,7,60,221,73
-    LTEXT           "Optional image used as a third board style. Leave blank to keep only the drawn frames.",IDC_STATIC,16,72,205,18
-    EDITTEXT        IDC_BG_IMAGE,16,94,150,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse...",IDC_BG_IMAGE_BROWSE,170,94,50,14
-    PUSHBUTTON      "Clear image",IDC_BG_IMAGE_CLEAR,16,113,60,14
+    GROUPBOX        "Board images (Z key) - replace the drawn frames if set",IDC_STATIC,7,60,221,73
+    LTEXT           "Light board:",IDC_STATIC,16,73,45,8
+    EDITTEXT        IDC_BG_IMG_LIGHT,62,71,104,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BG_IMG_LIGHT_BROWSE,170,71,34,14
+    PUSHBUTTON      "X",IDC_BG_IMG_LIGHT_CLEAR,208,71,12,14
+    LTEXT           "Dark board:",IDC_STATIC,16,93,45,8
+    EDITTEXT        IDC_BG_IMG_DARK,62,91,104,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BG_IMG_DARK_BROWSE,170,91,34,14
+    PUSHBUTTON      "X",IDC_BG_IMG_DARK_CLEAR,208,91,12,14
+    LTEXT           "Leave blank to keep the built-in whiteboard / slate frame.",IDC_STATIC,16,113,205,8
 END
 
 

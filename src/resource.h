@@ -58,9 +58,12 @@
 #define IDC_BG_LIGHT_SWATCH             1051
 #define IDC_BG_DARK_SWATCH              1052
 #define IDC_BG_RESET                    1053
-#define IDC_BG_IMAGE                    1054
-#define IDC_BG_IMAGE_BROWSE             1055
-#define IDC_BG_IMAGE_CLEAR              1056
+#define IDC_BG_IMG_LIGHT                1054
+#define IDC_BG_IMG_LIGHT_BROWSE         1055
+#define IDC_BG_IMG_LIGHT_CLEAR          1056
+#define IDC_BG_IMG_DARK                 1057
+#define IDC_BG_IMG_DARK_BROWSE          1058
+#define IDC_BG_IMG_DARK_CLEAR           1059
 #define ID_TRAYCONTEXT_OPTIONS          32771
 #define ID_TRAYCONTEXT_ABOUT            32772
 #define ID_TRAYCONTEXT_DRAW             32774
@@ -97,7 +100,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32809
-#define _APS_NEXT_CONTROL_VALUE         1057
+#define _APS_NEXT_CONTROL_VALUE         1060
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

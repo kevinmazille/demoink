@@ -510,26 +510,29 @@ Stockées dans `[Background] light`/`dark`, défauts `DEFAULT_BG_LIGHT` (blanc) 
 `DEFAULT_BG_DARK` (noir). `PaintThemeBackground` lit `BackgroundColor(bool dark)`
 au lieu des `RGB(255,255,255)`/`RGB(0,0,0)` codés en dur.
 
-### Image de board (touche Z) — état intermédiaire
-`BoardStyle::Image` ajouté comme **3e cran** du cycle Z (whiteboard → slate →
-image → whiteboard) **quand** `[Background] image` est renseigné (sinon A↔B
-inchangé). Champ chemin + Browse (`GetOpenFileName`, PNG/JPG/BMP/GIF) + Clear.
-`PaintBoardFrame` charge l'image via `Gdiplus::Bitmap` et la dessine centrée,
-mise à l'échelle uniforme pour tenir à l'écran (letterbox sur la couleur de
-fond sombre).
+### Image de board (touche Z) — état intermédiaire (remplacé, voir pivot ci-dessous)
+Première version : `BoardStyle::Image` en **3e cran** du cycle Z, image unique
+`[Background] image`. Abandonné au profit du pivot ci-dessous.
 
-> **PIVOT PRÉVU (prochain chantier).** Kevin veut que l'image ne soit *pas* un
-> 3e cran séparé mais **remplace** le rendu vectoriel : une image custom à la
-> place du whiteboard clair (A) **et** une autre à la place du slate sombre
-> (B). Le cycle Z reste à 2 crans ; chaque cran affiche soit le dessin
-> vectoriel par défaut, soit l'image fournie si elle existe. Donc prévoir 2
-> chemins (`Background/imagelight` + `imagedark`) au lieu du `image` unique
-> actuel, et brancher le rendu image dans les cas FrameA/FrameB.
+## Réalisé : Images de board A/B (pivot) (`feature/board-images-ab`)
+
+Pivot demandé : l'image ne doit **pas** être un 3e cran mais **remplacer** le
+rendu vectoriel d'un des deux cadres. Le cycle Z reste à **2 crans** (A clair ↔
+B sombre) ; chaque cran dessine soit son cadre vectoriel par défaut, soit
+l'image fournie pour ce style si elle existe.
+
+- `BoardStyle::Image` retiré ; cycle Z revenu à `None → A → B → A`.
+- 2 chemins INI : `[Background] imagelight` (remplace FrameA) et `imagedark`
+  (remplace FrameB). Helper `BoardImagePath(bool dark)`.
+- `PaintBoardFrame` : lambda locale `tryDrawImage(bool dark)` — si un chemin est
+  configuré et l'image se charge (`Gdiplus::Bitmap`), elle est dessinée centrée
+  + mise à l'échelle uniforme (letterbox sur la couleur de fond du thème déjà
+  peinte dessous) puis `return` ; sinon on tombe sur le dessin vectoriel. Testée
+  en tête des cas `FrameA` (dark=false) et `FrameB` (dark=true).
+- Onglet Background : 2 lignes image (Light board / Dark board), chacune avec
+  Browse (`GetOpenFileName`) + bouton X (clear). Champ vide = cadre vectoriel.
 
 ## Idées futures
-- **Background custom — pivot image A/B** : voir l'encadré ci-dessus. Remplacer
-  le 3e cran `BoardStyle::Image` par 2 images optionnelles qui se substituent
-  au rendu vectoriel de FrameA (clair) et FrameB (sombre).
 - **Auto-screenshot à l'Esc** : quand on sort du mode draw, capturer
   l'écran annoté et le sauver dans un dossier dédié. Implémentation
   basique sans MCP : dossier fixe + nom horodaté.

@@ -173,16 +173,16 @@ Détail : docs/modifications.md.
 - ✅ **Fond uni configurable** : couleurs des thèmes clair/sombre éditables
   (2 pastilles + Reset, `[Background] light`/`dark`) ; `PaintThemeBackground`
   via `BackgroundColor(bool dark)`. Défauts blanc/noir.
-- ✅ **Image de board (état intermédiaire)** : `BoardStyle::Image` ajouté en
-  3e cran du cycle `Z` quand `[Background] image` est renseigné (champ +
-  Browse + Clear) ; image centrée + letterbox.
+- ✅ **Images de board A/B** (pivot, branche `feature/board-images-ab`) :
+  l'image **remplace** le rendu vectoriel d'un cadre au lieu d'être un 3e cran.
+  Cycle `Z` à 2 crans inchangé ; chaque cran dessine son cadre vectoriel OU
+  l'image fournie (`[Background] imagelight` pour A, `imagedark` pour B).
+  Onglet : 2 lignes image (Light/Dark board) avec Browse + clear. Champ vide =
+  cadre vectoriel d'origine.
 
 **PROCHAINS CHANTIERS :**
-- **Background — pivot image A/B** : l'image ne doit *pas* être un 3e cran mais
-  **remplacer** le rendu vectoriel des cadres — une image à la place du
-  whiteboard clair (A) et une autre à la place du slate sombre (B). Le cycle
-  `Z` reste à 2 crans. Prévoir `[Background] imagelight` + `imagedark` au lieu
-  du `image` unique actuel.
+- (rien de cadré pour l'instant — voir « Idées futures » dans
+  docs/modifications.md ; release possible quand tu veux publier.)
 
 **RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les
 deux modes. À chaque publication, fournir : (1) le **portable**

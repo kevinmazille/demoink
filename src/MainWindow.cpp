@@ -646,9 +646,9 @@ COLORREF CMainWindow::BackgroundColor(bool dark)
     return static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Background", key, dark ? DEFAULT_BG_DARK : DEFAULT_BG_LIGHT));
 }
 
-std::wstring CMainWindow::BackgroundImagePath()
+std::wstring CMainWindow::BoardImagePath(bool dark)
 {
-    return CIniSettings::Instance().GetString(L"Background", L"image", L"");
+    return CIniSettings::Instance().GetString(L"Background", dark ? L"imagedark" : L"imagelight", L"");
 }
 
 void CMainWindow::ApplyTheme()
@@ -848,29 +848,33 @@ void CMainWindow::PaintBoardFrame()
 
     const Gdiplus::Color clay(0xFF, 0xD9, 0x77, 0x57);
 
-    if (m_boardStyle == BoardStyle::Image)
-    {
-        // User image: fill the screen with the dark background color, then
-        // draw the image centred and uniformly scaled to fit (letterboxed).
-        std::wstring path = BackgroundImagePath();
+    // If the user supplied an image for this board style, it replaces the
+    // vector frame: drawn centred and uniformly scaled to fit (letterboxed on
+    // the theme background already painted underneath). Returns true if it took
+    // over the rendering.
+    auto tryDrawImage = [&](bool dark) -> bool {
+        std::wstring path = BoardImagePath(dark);
+        if (path.empty())
+            return false;
         Gdiplus::Bitmap bmp(path.c_str());
-        if (bmp.GetLastStatus() == Gdiplus::Ok && bmp.GetWidth() > 0 && bmp.GetHeight() > 0)
-        {
-            const double iw    = static_cast<double>(bmp.GetWidth());
-            const double ih    = static_cast<double>(bmp.GetHeight());
-            const double scale = std::min(cx / iw, cy / ih);
-            const auto   dw    = static_cast<Gdiplus::REAL>(iw * scale);
-            const auto   dh    = static_cast<Gdiplus::REAL>(ih * scale);
-            const auto   dx    = static_cast<Gdiplus::REAL>((cx - dw) / 2.0);
-            const auto   dy    = static_cast<Gdiplus::REAL>((cy - dh) / 2.0);
-            graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-            graphics.DrawImage(&bmp, Gdiplus::RectF(dx, dy, dw, dh));
-        }
-        return;
-    }
+        if (bmp.GetLastStatus() != Gdiplus::Ok || bmp.GetWidth() == 0 || bmp.GetHeight() == 0)
+            return false;
+        const double iw    = static_cast<double>(bmp.GetWidth());
+        const double ih    = static_cast<double>(bmp.GetHeight());
+        const double scale = std::min(cx / iw, cy / ih);
+        const auto   dw    = static_cast<Gdiplus::REAL>(iw * scale);
+        const auto   dh    = static_cast<Gdiplus::REAL>(ih * scale);
+        const auto   dx    = static_cast<Gdiplus::REAL>((cx - dw) / 2.0);
+        const auto   dy    = static_cast<Gdiplus::REAL>((cy - dh) / 2.0);
+        graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+        graphics.DrawImage(&bmp, Gdiplus::RectF(dx, dy, dw, dh));
+        return true;
+    };
 
     if (m_boardStyle == BoardStyle::FrameA)
     {
+        if (tryDrawImage(false))
+            return;
         // Light whiteboard: paper gradient, grey mat border, thin clay
         // liseré framing the ~95% canvas, plus corner registration ticks.
         Gdiplus::RectF full(0.0f, 0.0f, static_cast<Gdiplus::REAL>(cx), static_cast<Gdiplus::REAL>(cy));
@@ -906,6 +910,9 @@ void CMainWindow::PaintBoardFrame()
     }
     else if (m_boardStyle == BoardStyle::FrameB)
     {
+        if (tryDrawImage(true))
+            return;
+
         // Dark slate board: lighter bevelled frame, radial slate canvas,
         // clay "tray" baseline. The plain Dark theme already filled the
         // background black, so we paint the full decor here.
