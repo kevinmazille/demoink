@@ -9,10 +9,10 @@
 ;   1) winget install --id JRSoftware.InnoSetup -e        (once)
 ;   2) build.bat                                           (produces the bundled exe)
 ;   3) "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\DemoInk.iss
-; Output: installer\Output\DemoInk-2.3.0-Setup.exe
+; Output: installer\Output\DemoInk-1.0.0-Setup.exe
 
 #define MyAppName "DemoInk"
-#define MyAppVersion "2.3.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "Kevin Mazille (fork of DemoHelper by Stefan Kueng)"
 #define MyAppExeName "DemoInk.exe"
 

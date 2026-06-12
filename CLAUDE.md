@@ -66,7 +66,9 @@ Voir [docs/modifications.md](docs/modifications.md).
 
 ## État actuel — pour reprendre
 
-**Version courante : 2.3.0** — strip-down mergé dans `main`.
+**Version courante : 1.0.0** — première release publique de DemoInk (le produit
+repart à 1.0.0 ; les anciens tags 2.x venaient du fork DemoHelper).
+`version.h` (`src/last/`) et l'installeur sont alignés sur 1.0.0.
 
 Acquis :
 - Mode texte (touche `A` depuis le rebind ; `Q` à l'origine) implémenté en v2.2.0
