@@ -150,6 +150,7 @@ LRESULT CMainWindow::DoCommand(int id)
             UnregisterHotKey(*this, DRAW_HOTKEY);
             ShowOptionsSheet(*this);
             RegisterHotKeys();
+            RebuildAcceleratorTable(); // pick up any rebound shortcut keys
         }
         break;
         case ID_TRAYCONTEXT_DRAW:

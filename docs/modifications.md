@@ -450,12 +450,55 @@ réglages. Sous-dossiers renommés en **anglais** : `By client` / `By date`
   `ID_CMD_INCREASE/DECREASE` et `NEXT/PREVCOLOR` → l'épaisseur et la couleur
   se règlent avant le premier trait.
 
+## Réalisé : Onglet Shortcuts + défaut opaque (`feature/shortcuts-tab`)
+
+Rebind des 5 lettres d'action du mode draw, défaut alpha `T`→`X`, et option
+d'opacité au lancement. Disposition clavier (AZERTY/QWERTY) **hors scope** :
+on réassigne juste action↔lettre.
+
+### Table d'accélérateurs dynamique
+La table passe de **statique** (`LoadAccelerators` sur la ressource
+`ACCELERATORS` du `.rc`) à **construite au runtime** depuis l'INI. La
+ressource `IDR_DEMOHELPER ACCELERATORS` est retirée du `.rc`.
+`BuildAcceleratorTable()` (`MainWindow.cpp`) assemble un `std::vector<ACCEL>`
+puis `CreateAcceleratorTable`. La `HACCEL` est détenue par la fenêtre
+(`m_hAccel`), créée au `WM_CREATE` (`RebuildAcceleratorTable`), détruite au
+`WM_DESTROY`, et **reconstruite à la fermeture des Options** (`Commands.cpp`)
+pour prendre en compte un rebind sans redémarrer. La boucle de messages
+(`DemoHelper.cpp`) lit `trayWindow.AcceleratorTable()`.
+
+### Touches rebindables vs fixes
+Rebindables (table `SHORTCUTS[]` dans `MainWindow.h` : cmd ↔ clé INI ↔ lettre
+défaut ↔ contrôle edit) :
+
+| Action | Défaut | Clé INI `[Shortcuts]` |
+|--------|--------|-----------------------|
+| Text mode | `A` | `key_textmode` |
+| Erase all | `W` | `key_clearlines` |
+| Solid background | `Q` | `key_toggletheme` |
+| Board frame | `Z` | `key_cycleboard` |
+| Opaque / see-through | `X` (était `T`) | `key_togglerop` |
+
+Fixes (non rebindables, en dur dans `BuildAcceleratorTable`) : `0-9`, `↑↓`,
+`←→`, `Esc`, `Backspace`, `Delete`, `F1`, `Alt+/`. Lettres stockées en
+majuscule ; `'A'-'Z' == VK_A-VK_Z` donc utilisées telles quelles comme
+`ACCEL.key` avec `FVIRTKEY`.
+
+### Onglet Shortcuts (UI)
+6e property page (`IDD_OPT_SHORTCUTS`, `ShortcutsPageProc`). 5 edits d'1 car
+(`ES_UPPERCASE`, `EM_SETLIMITTEXT 1`) + bouton **Reset to defaults**.
+Validation sur `PSN_APPLY` : refuse vide / non-lettre / doublon
+(`MessageBox` + `PSNRET_INVALID_NOCHANGEPAGE`, reste sur la page). Écrit dans
+`[Shortcuts]` sur OK. `ResolveShortcutLetter()` retombe sur le défaut si la
+valeur INI est absente/invalide.
+
+### Option « Start opaque » (onglet Draw)
+Case **« Start with opaque strokes (not see-through) »**
+(`IDC_DEFAULTOPAQUE`, `[Draw] startopaque`). Dans `ApplyTheme`, l'alpha de
+départ devient `(dark || startopaque) ? 255 : LINE_ALPHA` — le Dark reste
+toujours opaque, le Light/Transparent devient opaque si l'option est cochée.
+
 ## Idées futures
-- **Onglet Shortcuts** : laisser rebinder certaines touches. Implique de
-  passer la table d'accélérateurs de statique (`LoadAccelerators`) à
-  dynamique (`CreateAcceleratorTable` depuis l'INI). Disposition clavier
-  (AZERTY/QWERTY) explicitement hors scope : juste « réassigner une action à
-  une touche ».
 - **Molette = toujours la taille** : en mode draw, la molette nue cycle
   aujourd'hui les **couleurs** (et `Ctrl+molette` = épaisseur). Kevin veut
   que la molette nue change **toujours la taille** (épaisseur en draw, déjà

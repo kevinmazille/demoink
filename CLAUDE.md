@@ -154,11 +154,21 @@ Le dialog Options unique est devenu un **PropertySheet à onglets** Win32.
 Épaisseur **et** couleur réglables avant le premier trait (retrait du garde
 `!m_drawLines.empty()`).
 
+**LIVRÉ (2026-06-12) — Onglet Shortcuts + défaut opaque.** Branche
+`feature/shortcuts-tab`. Détail : docs/modifications.md.
+- ✅ **Table d'accélérateurs dynamique** : `LoadAccelerators` (ressource `.rc`
+  statique) → `CreateAcceleratorTable` depuis l'INI au `WM_CREATE`, reconstruite
+  à la fermeture des Options. `m_hAccel` détenue par la fenêtre. Ressource
+  `IDR_DEMOHELPER ACCELERATORS` retirée du `.rc`.
+- ✅ **Onglet Shortcuts** : rebind des 5 lettres `A`=texte / `W`=erase /
+  `Q`=fond uni / `Z`=cadre / `X`=opaque↔alpha (table `SHORTCUTS[]`, section INI
+  `[Shortcuts]`). Reset + anti-doublon. Le reste (chiffres, flèches, Échap,
+  Retour, Suppr, F1) reste **fixe**.
+- ✅ **Défaut alpha `T`→`X`** (T jugé trop loin).
+- ✅ **Option « Start opaque »** (onglet Draw, `[Draw] startopaque`) : traits
+  pleins au lancement même en thème clair/transparent.
+
 **PROCHAINS CHANTIERS :**
-- **Shortcuts** (le plus lourd) : rebinder certaines touches → table
-  d'accélérateurs dynamique (`CreateAcceleratorTable` depuis l'INI au lieu de
-  `LoadAccelerators`). Disposition AZERTY/QWERTY **hors scope** (juste
-  réassigner action↔touche).
 - **Background custom au clear** : couleur/image de fond configurable.
 
 **RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les

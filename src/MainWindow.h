@@ -137,8 +137,42 @@ protected:
     static INT_PTR CALLBACK TextPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static INT_PTR CALLBACK ColorsPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static INT_PTR CALLBACK ScreenshotPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK ShortcutsPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD             HotKeyControl2HotKey(WORD hk);
     static WORD             HotKey2HotKeyControl(WORD hk);
+
+    // Rebindable single-letter shortcuts for the main draw actions. Each entry
+    // maps a command id to its [Shortcuts] INI key, built-in default letter and
+    // the edit control on the Shortcuts page. Everything else (digits, arrows,
+    // Esc, Backspace, Delete, F1) stays fixed. See BuildAcceleratorTable.
+    struct ShortcutDef
+    {
+        int            cmd;
+        const wchar_t* iniKey;
+        wchar_t        defaultLetter;
+        int            editId;
+    };
+    static constexpr ShortcutDef SHORTCUTS[] = {
+        {ID_CMD_TEXTMODE, L"textmode", L'A', IDC_KEY_TEXTMODE},
+        {ID_CMD_CLEARLINES, L"clearlines", L'W', IDC_KEY_CLEARLINES},
+        {ID_CMD_TOGGLETHEME, L"toggletheme", L'Q', IDC_KEY_TOGGLETHEME},
+        {ID_CMD_CYCLEBOARD, L"cycleboard", L'Z', IDC_KEY_CYCLEBOARD},
+        {ID_CMD_TOGGLEROP, L"togglerop", L'X', IDC_KEY_TOGGLEROP},
+    };
+    // Reads the configured letter for an action from the INI, uppercased and
+    // validated A-Z, falling back to its built-in default.
+    static wchar_t ResolveShortcutLetter(const ShortcutDef& def);
+
+    // Builds the keyboard accelerator table at runtime from the [Shortcuts]
+    // INI section plus the fixed keys. Caller owns the returned HACCEL.
+    static HACCEL BuildAcceleratorTable();
+    // Destroys the current table and rebuilds it from the INI (after Options).
+    void RebuildAcceleratorTable();
+
+public:
+    HACCEL AcceleratorTable() const { return m_hAccel; }
+
+protected:
 
     // Built-in palettes (10 colors each). Used as the fallback when no custom
     // color is stored in the INI, and as the target of "Reset to defaults".
@@ -194,6 +228,8 @@ protected:
 
     RECT                 m_rcScreen;
     std::deque<DrawLine> m_drawLines;
+
+    HACCEL m_hAccel = nullptr; // runtime accelerator table (see BuildAcceleratorTable)
 
     static HWND m_mainWnd;
 };

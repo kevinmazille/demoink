@@ -90,6 +90,7 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         {
             m_hwnd = hwnd;
             RegisterHotKeys();
+            RebuildAcceleratorTable();
             // Defaults applied at every launch (configurable in Options > Draw);
             // not carried over from the previous session.
             m_colorIndex      = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"defaultcolor", 1));
@@ -405,6 +406,11 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
             break;
         case WM_DESTROY:
             Shell_NotifyIcon(NIM_DELETE, &niData);
+            if (m_hAccel)
+            {
+                DestroyAcceleratorTable(m_hAccel);
+                m_hAccel = nullptr;
+            }
             bWindowClosed = TRUE;
             PostQuitMessage(0);
             break;
@@ -534,6 +540,58 @@ void CMainWindow::RegisterHotKeys()
     RegisterHotKey(*this, DRAW_HOTKEY, HIBYTE(draw), LOBYTE(draw));
 }
 
+wchar_t CMainWindow::ResolveShortcutLetter(const ShortcutDef& def)
+{
+    std::wstring  key = std::wstring(L"key_") + def.iniKey;
+    std::wstring  val = CIniSettings::Instance().GetString(L"Shortcuts", key.c_str(), L"");
+    const wchar_t c   = val.empty() ? def.defaultLetter : towupper(val[0]);
+    return (c >= L'A' && c <= L'Z') ? c : def.defaultLetter;
+}
+
+HACCEL CMainWindow::BuildAcceleratorTable()
+{
+    std::vector<ACCEL> accels;
+
+    // Rebindable single-letter actions, read from the INI.
+    for (const auto& def : SHORTCUTS)
+    {
+        ACCEL a   = {0};
+        a.fVirt   = FVIRTKEY;
+        a.key     = static_cast<WORD>(ResolveShortcutLetter(def)); // 'A'-'Z' == VK_A-VK_Z
+        a.cmd     = static_cast<WORD>(def.cmd);
+        accels.push_back(a);
+    }
+
+    // Fixed keys (not rebindable).
+    auto addVirt = [&](WORD vk, int cmd) { accels.push_back({FVIRTKEY, vk, static_cast<WORD>(cmd)}); };
+    // Digits 0-9 select palette colors (the command ids are not contiguous,
+    // so map them explicitly).
+    constexpr int colorCmd[10] = {ID_CMD_COLOR0, ID_CMD_COLOR1, ID_CMD_COLOR2, ID_CMD_COLOR3, ID_CMD_COLOR4,
+                                  ID_CMD_COLOR5, ID_CMD_COLOR6, ID_CMD_COLOR7, ID_CMD_COLOR8, ID_CMD_COLOR9};
+    for (int i = 0; i <= 9; ++i)
+        addVirt(static_cast<WORD>('0' + i), colorCmd[i]);
+    addVirt(VK_DOWN, ID_CMD_DECREASE);
+    addVirt(VK_UP, ID_CMD_INCREASE);
+    addVirt(VK_RIGHT, ID_CMD_NEXTCOLOR);
+    addVirt(VK_LEFT, ID_CMD_PREVCOLOR);
+    addVirt(VK_ESCAPE, ID_CMD_QUITMODE);
+    addVirt(VK_BACK, ID_CMD_UNDOLINE);
+    addVirt(VK_DELETE, ID_CMD_REMOVEFIRST);
+    addVirt(VK_F1, IDHELP);
+    // Alt+/ and Alt+? -> About
+    accels.push_back({static_cast<BYTE>(FVIRTKEY | FALT), VK_OEM_2, IDM_ABOUT});
+
+    return CreateAcceleratorTable(accels.data(), static_cast<int>(accels.size()));
+}
+
+void CMainWindow::RebuildAcceleratorTable()
+{
+    HACCEL old = m_hAccel;
+    m_hAccel   = BuildAcceleratorTable();
+    if (old)
+        DestroyAcceleratorTable(old);
+}
+
 namespace
 {
     constexpr wchar_t AUTOSTART_KEY[]   = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
@@ -598,7 +656,10 @@ void CMainWindow::ApplyTheme()
         swprintf_s(key, _countof(key), L"%s%d", prefix, i);
         m_colors[i] = static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Colors", key, defaults[i]));
     }
-    m_currentAlpha = dark ? 255 : LINE_ALPHA;
+    // Dark is always opaque; Light/Transparent are see-through unless the user
+    // opted for opaque strokes by default (Options > Draw).
+    const bool startOpaque = CIniSettings::Instance().GetInt64(L"Draw", L"startopaque", 0) != 0;
+    m_currentAlpha         = (dark || startOpaque) ? 255 : LINE_ALPHA;
 }
 
 void CMainWindow::RenderAnnotations(Gdiplus::Graphics& graphics)

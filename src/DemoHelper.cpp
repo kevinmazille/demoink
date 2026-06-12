@@ -82,11 +82,12 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
     {
         if (CMainWindow trayWindow(g_hResource); trayWindow.RegisterAndCreateWindow())
         {
-            HACCEL hAccelTable = LoadAccelerators(g_hResource, MAKEINTRESOURCE(IDR_DEMOHELPER));
+            // The accelerator table is built at runtime (rebindable keys live
+            // in the INI); the window owns it and rebuilds it after Options.
             // Main message loop:
             while (GetMessage(&msg, nullptr, 0, 0))
             {
-                if (trayWindow.IsInTextMode() || !TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+                if (trayWindow.IsInTextMode() || !TranslateAccelerator(msg.hwnd, trayWindow.AcceleratorTable(), &msg))
                 {
                     TranslateMessage(&msg);
                     DispatchMessage(&msg);

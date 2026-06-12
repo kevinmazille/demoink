@@ -32,7 +32,7 @@
 // to the INI once here.
 void CMainWindow::ShowOptionsSheet(HWND hParent)
 {
-    PROPSHEETPAGE psp[5] = {0};
+    PROPSHEETPAGE psp[6] = {0};
 
     psp[0].dwSize      = sizeof(PROPSHEETPAGE);
     psp[0].dwFlags     = PSP_DEFAULT;
@@ -63,6 +63,12 @@ void CMainWindow::ShowOptionsSheet(HWND hParent)
     psp[4].hInstance   = g_hInstance;
     psp[4].pszTemplate = MAKEINTRESOURCE(IDD_OPT_SCREENSHOT);
     psp[4].pfnDlgProc  = ScreenshotPageProc;
+
+    psp[5].dwSize      = sizeof(PROPSHEETPAGE);
+    psp[5].dwFlags     = PSP_DEFAULT;
+    psp[5].hInstance   = g_hInstance;
+    psp[5].pszTemplate = MAKEINTRESOURCE(IDD_OPT_SHORTCUTS);
+    psp[5].pfnDlgProc  = ShortcutsPageProc;
 
     PROPSHEETHEADER psh = {0};
     psh.dwSize          = sizeof(PROPSHEETHEADER);
@@ -132,6 +138,8 @@ INT_PTR CALLBACK CMainWindow::DrawPageProc(HWND hwndDlg, UINT message, WPARAM /*
             auto defaultPen = CIniSettings::Instance().GetInt64(L"Draw", L"defaultpenwidth", 6);
             _stprintf_s(buffer, _countof(buffer), _T("%ld"), static_cast<DWORD>(defaultPen));
             SetWindowText(GetDlgItem(hwndDlg, IDC_DEFAULTPENWIDTH), buffer);
+
+            CheckDlgButton(hwndDlg, IDC_DEFAULTOPAQUE, CIniSettings::Instance().GetInt64(L"Draw", L"startopaque", 0) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
         case WM_NOTIFY:
@@ -160,6 +168,8 @@ INT_PTR CALLBACK CMainWindow::DrawPageProc(HWND hwndDlg, UINT message, WPARAM /*
                 if (pen > 32)
                     pen = 32;
                 CIniSettings::Instance().SetInt64(L"Draw", L"defaultpenwidth", pen);
+
+                CIniSettings::Instance().SetInt64(L"Draw", L"startopaque", IsDlgButtonChecked(hwndDlg, IDC_DEFAULTOPAQUE) ? 1 : 0);
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }
@@ -385,6 +395,79 @@ INT_PTR CALLBACK CMainWindow::ScreenshotPageProc(HWND hwndDlg, UINT message, WPA
                 wchar_t buffer[MAX_PATH] = {0};
                 GetWindowText(GetDlgItem(hwndDlg, IDC_SHOT_FOLDER), buffer, _countof(buffer));
                 CIniSettings::Instance().SetString(L"Screenshot", L"folder", buffer);
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            }
+        }
+        break;
+    }
+    return FALSE;
+}
+
+INT_PTR CALLBACK CMainWindow::ShortcutsPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+        case WM_INITDIALOG:
+        {
+            for (const auto& def : SHORTCUTS)
+            {
+                HWND hEdit = GetDlgItem(hwndDlg, def.editId);
+                SendMessage(hEdit, EM_SETLIMITTEXT, 1, 0); // one letter per action
+                wchar_t letter[2] = {ResolveShortcutLetter(def), 0};
+                SetWindowText(hEdit, letter);
+            }
+        }
+        break;
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDC_SHORTCUT_RESET)
+            {
+                for (const auto& def : SHORTCUTS)
+                {
+                    wchar_t letter[2] = {def.defaultLetter, 0};
+                    SetWindowText(GetDlgItem(hwndDlg, def.editId), letter);
+                }
+            }
+            break;
+        case WM_NOTIFY:
+        {
+            auto pnmh = reinterpret_cast<LPNMHDR>(lParam);
+            if (pnmh->code == PSN_APPLY)
+            {
+                // Collect the chosen letters; reject blanks, non-letters and
+                // duplicates so the accelerator table can't end up ambiguous.
+                wchar_t chosen[_countof(SHORTCUTS)] = {0};
+                for (int i = 0; i < static_cast<int>(_countof(SHORTCUTS)); ++i)
+                {
+                    wchar_t buffer[8] = {0};
+                    GetWindowText(GetDlgItem(hwndDlg, SHORTCUTS[i].editId), buffer, _countof(buffer));
+                    wchar_t c = towupper(buffer[0]);
+                    if (c < L'A' || c > L'Z')
+                    {
+                        MessageBox(hwndDlg, L"Each shortcut must be a single letter (A-Z).", L"Shortcuts", MB_ICONWARNING | MB_OK);
+                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID_NOCHANGEPAGE);
+                        return TRUE;
+                    }
+                    for (int j = 0; j < i; ++j)
+                    {
+                        if (chosen[j] == c)
+                        {
+                            wchar_t msg[96] = {0};
+                            swprintf_s(msg, _countof(msg), L"The key '%c' is assigned to more than one action.", c);
+                            MessageBox(hwndDlg, msg, L"Shortcuts", MB_ICONWARNING | MB_OK);
+                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID_NOCHANGEPAGE);
+                            return TRUE;
+                        }
+                    }
+                    chosen[i] = c;
+                }
+
+                for (int i = 0; i < static_cast<int>(_countof(SHORTCUTS)); ++i)
+                {
+                    std::wstring key   = std::wstring(L"key_") + SHORTCUTS[i].iniKey;
+                    wchar_t      val[2] = {chosen[i], 0};
+                    CIniSettings::Instance().SetString(L"Shortcuts", key.c_str(), val);
+                }
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }

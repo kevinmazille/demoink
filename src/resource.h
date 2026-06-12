@@ -18,6 +18,7 @@
 #define IDD_OPT_TEXT                    135
 #define IDD_OPT_COLORS                  136
 #define IDD_OPT_SCREENSHOT              137
+#define IDD_OPT_SHORTCUTS               138
 #define IDR_HELP                        132
 #define IDC_WEBLINK                     1002
 #define IDC_HOTKEY_DRAWMODE             1004
@@ -46,6 +47,13 @@
 #define IDC_SHOT_MEETDETECT             1041
 #define IDC_SHOT_FOLDER                 1042
 #define IDC_SHOT_BROWSE                 1043
+#define IDC_DEFAULTOPAQUE               1044
+#define IDC_KEY_TEXTMODE                1045
+#define IDC_KEY_CLEARLINES              1046
+#define IDC_KEY_TOGGLETHEME             1047
+#define IDC_KEY_CYCLEBOARD              1048
+#define IDC_KEY_TOGGLEROP               1049
+#define IDC_SHORTCUT_RESET              1050
 #define ID_TRAYCONTEXT_OPTIONS          32771
 #define ID_TRAYCONTEXT_ABOUT            32772
 #define ID_TRAYCONTEXT_DRAW             32774
@@ -80,9 +88,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        138
+#define _APS_NEXT_RESOURCE_VALUE        139
 #define _APS_NEXT_COMMAND_VALUE         32809
-#define _APS_NEXT_CONTROL_VALUE         1044
+#define _APS_NEXT_CONTROL_VALUE         1051
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

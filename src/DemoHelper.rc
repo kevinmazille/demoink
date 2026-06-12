@@ -51,39 +51,10 @@ BEGIN
 END
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Accelerator
-//
-
-IDR_DEMOHELPER ACCELERATORS
-BEGIN
-    "w",            ID_CMD_CLEARLINES,      ASCII,  NOINVERT
-    "0",            ID_CMD_COLOR0,          ASCII,  NOINVERT
-    "1",            ID_CMD_COLOR1,          ASCII,  NOINVERT
-    "2",            ID_CMD_COLOR2,          ASCII,  NOINVERT
-    "3",            ID_CMD_COLOR3,          ASCII,  NOINVERT
-    "4",            ID_CMD_COLOR4,          ASCII,  NOINVERT
-    "5",            ID_CMD_COLOR5,          ASCII,  NOINVERT
-    "6",            ID_CMD_COLOR6,          ASCII,  NOINVERT
-    "7",            ID_CMD_COLOR7,          ASCII,  NOINVERT
-    "8",            ID_CMD_COLOR8,          ASCII,  NOINVERT
-    "9",            ID_CMD_COLOR9,          ASCII,  NOINVERT
-    VK_DOWN,        ID_CMD_DECREASE,        VIRTKEY, NOINVERT
-    VK_UP,          ID_CMD_INCREASE,        VIRTKEY, NOINVERT
-    "a",            ID_CMD_TEXTMODE,        ASCII,  NOINVERT
-    "q",            ID_CMD_TOGGLETHEME,     ASCII,  NOINVERT
-    "z",            ID_CMD_CYCLEBOARD,      ASCII,  NOINVERT
-    VK_RIGHT,       ID_CMD_NEXTCOLOR,       VIRTKEY, NOINVERT
-    VK_LEFT,        ID_CMD_PREVCOLOR,       VIRTKEY, NOINVERT
-    VK_ESCAPE,      ID_CMD_QUITMODE,        VIRTKEY, NOINVERT
-    "t",            ID_CMD_TOGGLEROP,       ASCII,  NOINVERT
-    VK_BACK,        ID_CMD_UNDOLINE,        VIRTKEY, NOINVERT
-    VK_F1,          IDHELP,                 VIRTKEY, NOINVERT
-    "/",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
-    "?",            IDM_ABOUT,              ASCII,  ALT, NOINVERT
-    VK_DELETE,      ID_CMD_REMOVEFIRST,     VIRTKEY, NOINVERT
-END
+// NOTE: the accelerator table is now built at runtime from the [Shortcuts]
+// INI section (see CMainWindow::BuildAcceleratorTable). The fixed keys and the
+// rebindable action letters live there, so there is no static ACCELERATORS
+// resource here anymore.
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -118,11 +89,12 @@ BEGIN
     LTEXT           "Remove lines after",IDC_STATIC,7,63,64,8
     EDITTEXT        IDC_FADESECONDS,84,60,40,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "seconds (0 = never)",IDC_STATIC,128,63,90,8
-    GROUPBOX        "Defaults at launch",IDC_STATIC,7,82,221,51
-    LTEXT           "Color (palette index 0-9):",IDC_STATIC,14,96,90,8
-    EDITTEXT        IDC_DEFAULTCOLOR,119,93,40,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "Pen width:",IDC_STATIC,14,115,90,8
-    EDITTEXT        IDC_DEFAULTPENWIDTH,119,112,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    GROUPBOX        "Defaults at launch",IDC_STATIC,7,78,221,55
+    LTEXT           "Color (palette index 0-9):",IDC_STATIC,14,90,100,8
+    EDITTEXT        IDC_DEFAULTCOLOR,119,87,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Pen width:",IDC_STATIC,14,107,100,8
+    EDITTEXT        IDC_DEFAULTPENWIDTH,119,104,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Start with opaque strokes (not see-through)",IDC_DEFAULTOPAQUE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,120,207,10
 END
 
 IDD_OPT_TEXT DIALOGEX 0, 0, 235, 140
@@ -172,6 +144,25 @@ BEGIN
     LTEXT           "Captures are filed under By date\\YYYY-MM-DD, plus By client when a Meet name is found.",IDC_STATIC,7,86,221,18
 END
 
+IDD_OPT_SHORTCUTS DIALOGEX 0, 0, 235, 140
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | DS_CONTROL
+CAPTION "Shortcuts"
+FONT 9, "Segoe UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "Single-letter keys for the main draw actions. One letter each; arrows, digits, Esc, Backspace and Delete stay fixed.",IDC_STATIC,7,7,221,18
+    LTEXT           "Text mode:",IDC_STATIC,7,33,90,8
+    EDITTEXT        IDC_KEY_TEXTMODE,119,30,24,14,ES_AUTOHSCROLL | ES_UPPERCASE
+    LTEXT           "Erase all:",IDC_STATIC,7,51,90,8
+    EDITTEXT        IDC_KEY_CLEARLINES,119,48,24,14,ES_AUTOHSCROLL | ES_UPPERCASE
+    LTEXT           "Solid background:",IDC_STATIC,7,69,90,8
+    EDITTEXT        IDC_KEY_TOGGLETHEME,119,66,24,14,ES_AUTOHSCROLL | ES_UPPERCASE
+    LTEXT           "Board frame:",IDC_STATIC,7,87,90,8
+    EDITTEXT        IDC_KEY_CYCLEBOARD,119,84,24,14,ES_AUTOHSCROLL | ES_UPPERCASE
+    LTEXT           "Opaque / see-through:",IDC_STATIC,7,105,100,8
+    EDITTEXT        IDC_KEY_TOGGLEROP,119,102,24,14,ES_AUTOHSCROLL | ES_UPPERCASE
+    PUSHBUTTON      "Reset to defaults",IDC_SHORTCUT_RESET,151,102,77,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -214,6 +205,14 @@ BEGIN
     END
 
     IDD_OPT_SCREENSHOT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 133
+    END
+
+    IDD_OPT_SHORTCUTS, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 228
