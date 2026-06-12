@@ -352,20 +352,12 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                 InvalidateRect(*this, nullptr, FALSE);
                 break;
             }
-            if (wParam & MK_CONTROL)
-            {
-                if (zDelta > 0)
-                    DoCommand(ID_CMD_DECREASE);
-                else
-                    DoCommand(ID_CMD_INCREASE);
-            }
+            // Wheel always resizes (pen width in draw mode, font size in text
+            // mode above). Color cycling stays on the arrow keys and 0-9.
+            if (zDelta > 0)
+                DoCommand(ID_CMD_DECREASE);
             else
-            {
-                if (zDelta > 0)
-                    DoCommand(ID_CMD_PREVCOLOR);
-                else
-                    DoCommand(ID_CMD_NEXTCOLOR);
-            }
+                DoCommand(ID_CMD_INCREASE);
             InvalidateRect(*this, nullptr, false);
         }
         break;

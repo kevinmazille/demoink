@@ -63,49 +63,37 @@ LRESULT CMainWindow::DoCommand(int id)
         }
         break;
         case ID_CMD_INCREASE:
-            if (!m_drawLines.empty())
+            if (m_currentPenWidth < 32)
             {
-                if (m_currentPenWidth < 32)
-                {
-                    m_currentPenWidth++;
-                    RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-                }
+                m_currentPenWidth++;
+                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
             }
             UpdateCursor();
             break;
         case ID_CMD_DECREASE:
-            if (!m_drawLines.empty())
+            if (m_currentPenWidth > 1)
             {
-                if (m_currentPenWidth > 1)
-                {
-                    m_currentPenWidth--;
-                    RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-                }
+                m_currentPenWidth--;
+                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
             }
             UpdateCursor();
             break;
         case ID_CMD_NEXTCOLOR:
             // cycle through colors
-            if (!m_drawLines.empty())
-            {
-                if (m_colorIndex < 9)
-                    m_colorIndex++;
-                else
-                    m_colorIndex = 0;
-                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-            }
+            if (m_colorIndex < 9)
+                m_colorIndex++;
+            else
+                m_colorIndex = 0;
+            RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
             UpdateCursor();
             break;
         case ID_CMD_PREVCOLOR:
             // cycle through colors
-            if (!m_drawLines.empty())
-            {
-                if (m_colorIndex > 0)
-                    m_colorIndex--;
-                else
-                    m_colorIndex = 9;
-                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-            }
+            if (m_colorIndex > 0)
+                m_colorIndex--;
+            else
+                m_colorIndex = 9;
+            RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
             UpdateCursor();
             break;
         case ID_CMD_COLOR0:
