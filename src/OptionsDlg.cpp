@@ -32,7 +32,7 @@
 // to the INI once here.
 void CMainWindow::ShowOptionsSheet(HWND hParent)
 {
-    PROPSHEETPAGE psp[6] = {0};
+    PROPSHEETPAGE psp[7] = {0};
 
     psp[0].dwSize      = sizeof(PROPSHEETPAGE);
     psp[0].dwFlags     = PSP_DEFAULT;
@@ -69,6 +69,12 @@ void CMainWindow::ShowOptionsSheet(HWND hParent)
     psp[5].hInstance   = g_hInstance;
     psp[5].pszTemplate = MAKEINTRESOURCE(IDD_OPT_SHORTCUTS);
     psp[5].pfnDlgProc  = ShortcutsPageProc;
+
+    psp[6].dwSize      = sizeof(PROPSHEETPAGE);
+    psp[6].dwFlags     = PSP_DEFAULT;
+    psp[6].hInstance   = g_hInstance;
+    psp[6].pszTemplate = MAKEINTRESOURCE(IDD_OPT_BACKGROUND);
+    psp[6].pfnDlgProc  = BackgroundPageProc;
 
     PROPSHEETHEADER psh = {0};
     psh.dwSize          = sizeof(PROPSHEETHEADER);
@@ -468,6 +474,114 @@ INT_PTR CALLBACK CMainWindow::ShortcutsPageProc(HWND hwndDlg, UINT message, WPAR
                     wchar_t      val[2] = {chosen[i], 0};
                     CIniSettings::Instance().SetString(L"Shortcuts", key.c_str(), val);
                 }
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            }
+        }
+        break;
+    }
+    return FALSE;
+}
+
+// Per-dialog working state for the Background page: the two solid-fill colors
+// are edited in memory and only written to the INI on OK (PSN_APPLY).
+struct BackgroundPageState
+{
+    COLORREF light;
+    COLORREF dark;
+};
+
+INT_PTR CALLBACK CMainWindow::BackgroundPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    auto* st = reinterpret_cast<BackgroundPageState*>(GetWindowLongPtr(hwndDlg, GWLP_USERDATA));
+    switch (message)
+    {
+        case WM_INITDIALOG:
+        {
+            st        = new BackgroundPageState();
+            st->light = BackgroundColor(false);
+            st->dark  = BackgroundColor(true);
+            SetWindowLongPtr(hwndDlg, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(st));
+            SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), BackgroundImagePath().c_str());
+        }
+        break;
+        case WM_DESTROY:
+            delete st;
+            SetWindowLongPtr(hwndDlg, GWLP_USERDATA, 0);
+            break;
+        case WM_DRAWITEM:
+        {
+            auto* dis = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
+            if (st && (dis->CtlID == IDC_BG_LIGHT_SWATCH || dis->CtlID == IDC_BG_DARK_SWATCH))
+            {
+                COLORREF c     = (dis->CtlID == IDC_BG_DARK_SWATCH) ? st->dark : st->light;
+                HBRUSH   brush = CreateSolidBrush(c);
+                FillRect(dis->hDC, &dis->rcItem, brush);
+                DeleteObject(brush);
+                FrameRect(dis->hDC, &dis->rcItem, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+                if (dis->itemState & ODS_FOCUS)
+                    DrawFocusRect(dis->hDC, &dis->rcItem);
+                return TRUE;
+            }
+        }
+        break;
+        case WM_COMMAND:
+        {
+            int id = LOWORD(wParam);
+            if (!st)
+                break;
+            if ((id == IDC_BG_LIGHT_SWATCH || id == IDC_BG_DARK_SWATCH) && HIWORD(wParam) == BN_CLICKED)
+            {
+                COLORREF*       slot       = (id == IDC_BG_DARK_SWATCH) ? &st->dark : &st->light;
+                static COLORREF custom[16] = {0};
+                CHOOSECOLOR     cc         = {0};
+                cc.lStructSize             = sizeof(cc);
+                cc.hwndOwner               = hwndDlg;
+                cc.rgbResult               = *slot;
+                cc.lpCustColors            = custom;
+                cc.Flags                   = CC_FULLOPEN | CC_RGBINIT;
+                if (ChooseColor(&cc))
+                {
+                    *slot = cc.rgbResult;
+                    InvalidateRect(GetDlgItem(hwndDlg, id), nullptr, TRUE);
+                }
+            }
+            else if (id == IDC_BG_RESET)
+            {
+                st->light = DEFAULT_BG_LIGHT;
+                st->dark  = DEFAULT_BG_DARK;
+                InvalidateRect(GetDlgItem(hwndDlg, IDC_BG_LIGHT_SWATCH), nullptr, TRUE);
+                InvalidateRect(GetDlgItem(hwndDlg, IDC_BG_DARK_SWATCH), nullptr, TRUE);
+            }
+            else if (id == IDC_BG_IMAGE_BROWSE)
+            {
+                wchar_t      file[MAX_PATH] = {0};
+                OPENFILENAME ofn            = {0};
+                ofn.lStructSize             = sizeof(ofn);
+                ofn.hwndOwner               = hwndDlg;
+                ofn.lpstrFilter             = L"Images\0*.png;*.jpg;*.jpeg;*.bmp;*.gif\0All files\0*.*\0";
+                ofn.lpstrFile               = file;
+                ofn.nMaxFile                = _countof(file);
+                ofn.Flags                   = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+                if (GetOpenFileName(&ofn))
+                    SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), file);
+            }
+            else if (id == IDC_BG_IMAGE_CLEAR)
+            {
+                SetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), L"");
+            }
+        }
+        break;
+        case WM_NOTIFY:
+        {
+            auto pnmh = reinterpret_cast<LPNMHDR>(lParam);
+            if (pnmh->code == PSN_APPLY && st)
+            {
+                CIniSettings::Instance().SetInt64(L"Background", L"light", st->light);
+                CIniSettings::Instance().SetInt64(L"Background", L"dark", st->dark);
+                wchar_t buffer[MAX_PATH] = {0};
+                GetWindowText(GetDlgItem(hwndDlg, IDC_BG_IMAGE), buffer, _countof(buffer));
+                CIniSettings::Instance().SetString(L"Background", L"image", buffer);
                 SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }

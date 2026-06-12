@@ -498,16 +498,38 @@ Case **« Start with opaque strokes (not see-through) »**
 départ devient `(dark || startopaque) ? 255 : LINE_ALPHA` — le Dark reste
 toujours opaque, le Light/Transparent devient opaque si l'option est cochée.
 
+## Réalisé : Onglet Background — fond uni configurable + image de board (`feature/background-custom`)
+
+Nouvel onglet **Background** (7e page du PropertySheet, `IDD_OPT_BACKGROUND`,
+`BackgroundPageProc`).
+
+### Fond uni (touche Q) configurable
+Les couleurs des thèmes clair et sombre (blanc / noir en dur jusqu'ici)
+deviennent éditables : 2 pastilles owner-drawn + `ChooseColor` + bouton Reset.
+Stockées dans `[Background] light`/`dark`, défauts `DEFAULT_BG_LIGHT` (blanc) /
+`DEFAULT_BG_DARK` (noir). `PaintThemeBackground` lit `BackgroundColor(bool dark)`
+au lieu des `RGB(255,255,255)`/`RGB(0,0,0)` codés en dur.
+
+### Image de board (touche Z) — état intermédiaire
+`BoardStyle::Image` ajouté comme **3e cran** du cycle Z (whiteboard → slate →
+image → whiteboard) **quand** `[Background] image` est renseigné (sinon A↔B
+inchangé). Champ chemin + Browse (`GetOpenFileName`, PNG/JPG/BMP/GIF) + Clear.
+`PaintBoardFrame` charge l'image via `Gdiplus::Bitmap` et la dessine centrée,
+mise à l'échelle uniforme pour tenir à l'écran (letterbox sur la couleur de
+fond sombre).
+
+> **PIVOT PRÉVU (prochain chantier).** Kevin veut que l'image ne soit *pas* un
+> 3e cran séparé mais **remplace** le rendu vectoriel : une image custom à la
+> place du whiteboard clair (A) **et** une autre à la place du slate sombre
+> (B). Le cycle Z reste à 2 crans ; chaque cran affiche soit le dessin
+> vectoriel par défaut, soit l'image fournie si elle existe. Donc prévoir 2
+> chemins (`Background/imagelight` + `imagedark`) au lieu du `image` unique
+> actuel, et brancher le rendu image dans les cas FrameA/FrameB.
+
 ## Idées futures
-- **Molette = toujours la taille** : en mode draw, la molette nue cycle
-  aujourd'hui les **couleurs** (et `Ctrl+molette` = épaisseur). Kevin veut
-  que la molette nue change **toujours la taille** (épaisseur en draw, déjà
-  la police en mode texte). À trancher à l'implémentation : où mettre le
-  cycle couleur (le basculer sur `Ctrl+molette`, ou s'appuyer uniquement sur
-  `←/→` et `0-9`). Voir `WM_MOUSEWHEEL` dans `MainWindow.cpp`.
-- **Background custom au clear** : remplacer le blanc par défaut
-  (`COLOR_WINDOW`) par une couleur configurable. Extension : permettre
-  une image de fond.
+- **Background custom — pivot image A/B** : voir l'encadré ci-dessus. Remplacer
+  le 3e cran `BoardStyle::Image` par 2 images optionnelles qui se substituent
+  au rendu vectoriel de FrameA (clair) et FrameB (sombre).
 - **Auto-screenshot à l'Esc** : quand on sort du mode draw, capturer
   l'écran annoté et le sauver dans un dossier dédié. Implémentation
   basique sans MCP : dossier fixe + nom horodaté.

@@ -59,7 +59,8 @@ enum class BoardStyle
 {
     None   = 0, // no frame (plain B themes)
     FrameA = 1, // light whiteboard: clay liseré, mat, corner ticks
-    FrameB = 2  // dark slate: bevelled frame, clay baseline
+    FrameB = 2, // dark slate: bevelled frame, clay baseline
+    Image  = 3  // user-provided background image (Background/image), letterboxed
 };
 
 class DrawLine
@@ -138,8 +139,19 @@ protected:
     static INT_PTR CALLBACK ColorsPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static INT_PTR CALLBACK ScreenshotPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static INT_PTR CALLBACK ShortcutsPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK BackgroundPageProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD             HotKeyControl2HotKey(WORD hk);
     static WORD             HotKey2HotKeyControl(WORD hk);
+
+    // Solid-fill background colors for the Q themes. Defaults are white (light)
+    // and black (dark); each is overridable via [Background] light/dark in the
+    // INI. BackgroundColor() resolves the value for the current theme.
+    static constexpr COLORREF DEFAULT_BG_LIGHT = RGB(255, 255, 255);
+    static constexpr COLORREF DEFAULT_BG_DARK  = RGB(0, 0, 0);
+    static COLORREF           BackgroundColor(bool dark);
+    // Path to the optional board-mode background image (Background/image).
+    // Empty when none is set; when set, it adds a third step to the Z cycle.
+    static std::wstring BackgroundImagePath();
 
     // Rebindable single-letter shortcuts for the main draw actions. Each entry
     // maps a command id to its [Shortcuts] INI key, built-in default letter and

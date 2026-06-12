@@ -215,10 +215,19 @@ LRESULT CMainWindow::DoCommand(int id)
             // B↔B — preserves them. The frame is painted into the background
             // DC, so existing drawings stay rendered on top in WM_PAINT.
             bool leavingTransparent = (m_theme == Theme::Transparent);
+            // Cycle A -> B -> (Image if configured) -> A. The image step only
+            // exists when a Background/image path is set.
+            const bool hasImage = !BackgroundImagePath().empty();
             if (m_boardStyle == BoardStyle::None)
                 m_boardStyle = BoardStyle::FrameA;
-            else
-                m_boardStyle = (m_boardStyle == BoardStyle::FrameA) ? BoardStyle::FrameB : BoardStyle::FrameA;
+            else if (m_boardStyle == BoardStyle::FrameA)
+                m_boardStyle = BoardStyle::FrameB;
+            else if (m_boardStyle == BoardStyle::FrameB)
+                m_boardStyle = hasImage ? BoardStyle::Image : BoardStyle::FrameA;
+            else // Image
+                m_boardStyle = BoardStyle::FrameA;
+            // Image rides on the Dark theme so its letterbox bars use the dark
+            // background color; A is Light, B is Dark.
             m_theme = (m_boardStyle == BoardStyle::FrameA) ? Theme::Light : Theme::Dark;
             ApplyTheme();
             if (leavingTransparent)

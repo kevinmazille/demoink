@@ -168,8 +168,21 @@ Le dialog Options unique est devenu un **PropertySheet à onglets** Win32.
 - ✅ **Option « Start opaque »** (onglet Draw, `[Draw] startopaque`) : traits
   pleins au lancement même en thème clair/transparent.
 
+**LIVRÉ (2026-06-12) — Onglet Background.** Branche `feature/background-custom`.
+Détail : docs/modifications.md.
+- ✅ **Fond uni configurable** : couleurs des thèmes clair/sombre éditables
+  (2 pastilles + Reset, `[Background] light`/`dark`) ; `PaintThemeBackground`
+  via `BackgroundColor(bool dark)`. Défauts blanc/noir.
+- ✅ **Image de board (état intermédiaire)** : `BoardStyle::Image` ajouté en
+  3e cran du cycle `Z` quand `[Background] image` est renseigné (champ +
+  Browse + Clear) ; image centrée + letterbox.
+
 **PROCHAINS CHANTIERS :**
-- **Background custom au clear** : couleur/image de fond configurable.
+- **Background — pivot image A/B** : l'image ne doit *pas* être un 3e cran mais
+  **remplacer** le rendu vectoriel des cadres — une image à la place du
+  whiteboard clair (A) et une autre à la place du slate sombre (B). Le cycle
+  `Z` reste à 2 crans. Prévoir `[Background] imagelight` + `imagedark` au lieu
+  du `image` unique actuel.
 
 **RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les
 deux modes. À chaque publication, fournir : (1) le **portable**

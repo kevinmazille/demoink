@@ -640,6 +640,17 @@ bool CMainWindow::UpdateCursor()
     return false;
 }
 
+COLORREF CMainWindow::BackgroundColor(bool dark)
+{
+    const wchar_t* key = dark ? L"dark" : L"light";
+    return static_cast<COLORREF>(CIniSettings::Instance().GetInt64(L"Background", key, dark ? DEFAULT_BG_DARK : DEFAULT_BG_LIGHT));
+}
+
+std::wstring CMainWindow::BackgroundImagePath()
+{
+    return CIniSettings::Instance().GetString(L"Background", L"image", L"");
+}
+
 void CMainWindow::ApplyTheme()
 {
     // Dark uses its own palette tuned for a black background and opaque
@@ -790,7 +801,7 @@ void CMainWindow::PaintThemeBackground()
     }
     else
     {
-        COLORREF bg     = (m_theme == Theme::Dark) ? RGB(0, 0, 0) : RGB(255, 255, 255);
+        COLORREF bg     = BackgroundColor(m_theme == Theme::Dark);
         RECT     rect   = {0, 0, cx, cy};
         HBRUSH   hBrush = CreateSolidBrush(bg);
         FillRect(hDesktopCompatibleDC, &rect, hBrush);
@@ -836,6 +847,27 @@ void CMainWindow::PaintBoardFrame()
     graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
     const Gdiplus::Color clay(0xFF, 0xD9, 0x77, 0x57);
+
+    if (m_boardStyle == BoardStyle::Image)
+    {
+        // User image: fill the screen with the dark background color, then
+        // draw the image centred and uniformly scaled to fit (letterboxed).
+        std::wstring path = BackgroundImagePath();
+        Gdiplus::Bitmap bmp(path.c_str());
+        if (bmp.GetLastStatus() == Gdiplus::Ok && bmp.GetWidth() > 0 && bmp.GetHeight() > 0)
+        {
+            const double iw    = static_cast<double>(bmp.GetWidth());
+            const double ih    = static_cast<double>(bmp.GetHeight());
+            const double scale = std::min(cx / iw, cy / ih);
+            const auto   dw    = static_cast<Gdiplus::REAL>(iw * scale);
+            const auto   dh    = static_cast<Gdiplus::REAL>(ih * scale);
+            const auto   dx    = static_cast<Gdiplus::REAL>((cx - dw) / 2.0);
+            const auto   dy    = static_cast<Gdiplus::REAL>((cy - dh) / 2.0);
+            graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+            graphics.DrawImage(&bmp, Gdiplus::RectF(dx, dy, dw, dh));
+        }
+        return;
+    }
 
     if (m_boardStyle == BoardStyle::FrameA)
     {
