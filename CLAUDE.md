@@ -143,15 +143,23 @@ Le dialog Options unique est devenu un **PropertySheet à onglets** Win32.
 - ✅ **Palier 3** — onglet **Colors** : palettes Light/Dark éditables (10
   pastilles, `ChooseColor`, Reset). `ApplyTheme` data-driven (`[Colors]` INI
   + fallback `DEFAULT_COLORS_LIGHT/DARK`).
+- ✅ **Palier 4** — onglet **Screenshot** : auto-capture désactivable, dossier
+  racine configurable (Browse), détection Meet optionnelle
+  (`Screenshot/enabled` / `folder` / `meetdetect`). Sous-dossiers renommés en
+  anglais `By client` / `By date`.
 
-**PROCHAINS CHANTIERS (onglets restants) :**
-- **Screenshot** : auto-capture désactivable, dossier racine configurable,
-  détection Meet optionnelle (dé-personnalise l'app — aujourd'hui hardcodé
-  pour l'usage Meet/`Pictures\DemoInk` de Kevin).
+**LIVRÉ (2026-06-12) — Molette = taille + réglages sur toile vide.** Branche
+`feature/wheel-resizes`. La molette change l'épaisseur (draw) / la police
+(texte) au lieu de cycler les couleurs ; cycle couleur sur `←/→` et `0-9`.
+Épaisseur **et** couleur réglables avant le premier trait (retrait du garde
+`!m_drawLines.empty()`).
+
+**PROCHAINS CHANTIERS :**
 - **Shortcuts** (le plus lourd) : rebinder certaines touches → table
   d'accélérateurs dynamique (`CreateAcceleratorTable` depuis l'INI au lieu de
   `LoadAccelerators`). Disposition AZERTY/QWERTY **hors scope** (juste
   réassigner action↔touche).
+- **Background custom au clear** : couleur/image de fond configurable.
 
 **RÈGLE DE RELEASE — toujours 2 artefacts.** Un seul `DemoInk.exe` couvre les
 deux modes. À chaque publication, fournir : (1) le **portable**

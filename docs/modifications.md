@@ -432,12 +432,25 @@ data-driven : lit chaque slot depuis l'INI, fallback sur les constantes
 `DEFAULT_COLORS_LIGHT/DARK` (qui servent aussi au reset). Les nouvelles
 couleurs s'appliquent à la prochaine entrée en mode draw.
 
-## Idées futures
+### Palier 4 — Onglet Screenshot
+Auto-capture désactivable (`Screenshot/enabled`), dossier racine configurable
+(`Screenshot/folder`, vide = `Pictures\DemoInk`, bouton Browse via
+`SHBrowseForFolder`), détection Meet optionnelle (`Screenshot/meetdetect` ;
+off → captures rangées par date seulement). `SaveScreenshot` honore les trois
+réglages. Sous-dossiers renommés en **anglais** : `By client` / `By date`
+(les anciennes captures FR de Kevin ne sont pas migrées).
 
-- **Onglet Screenshot** : rendre l'auto-capture désactivable, dossier racine
-  configurable, détection Meet optionnelle. Le plus utile pour la diffusion
-  (aujourd'hui codé en dur pour l'usage de Kevin : Google Meet, arbo
-  « Par client / Par date », `Pictures\DemoInk`).
+## Réalisé : Molette = taille + réglages sur toile vide (`feature/wheel-resizes`)
+
+- **Molette = taille partout** : en mode draw la molette (nue ou Ctrl) change
+  l'épaisseur du pinceau au lieu de cycler les couleurs ; en mode texte elle
+  ajuste toujours la police. Le cycle couleur reste sur `←/→` et `0-9`
+  (`WM_MOUSEWHEEL`).
+- **Réglable sur toile vide** : retrait du garde `!m_drawLines.empty()` sur
+  `ID_CMD_INCREASE/DECREASE` et `NEXT/PREVCOLOR` → l'épaisseur et la couleur
+  se règlent avant le premier trait.
+
+## Idées futures
 - **Onglet Shortcuts** : laisser rebinder certaines touches. Implique de
   passer la table d'accélérateurs de statique (`LoadAccelerators`) à
   dynamique (`CreateAcceleratorTable` depuis l'INI). Disposition clavier
