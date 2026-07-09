@@ -50,6 +50,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             guard let screen = NSScreen.main else { return }
             let window = OverlayWindow(screen: screen)
+            (window.contentView as? OverlayView)?.onExit = { [weak self] in
+                self?.toggleOverlay()
+            }
+            NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             overlayWindow = window
         }

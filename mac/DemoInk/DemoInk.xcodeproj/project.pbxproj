@@ -12,6 +12,7 @@
 		BB0000050000000000000001 /* SingleInstance.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000060000000000000001 /* SingleInstance.swift */; };
 		BB0000070000000000000001 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000080000000000000001 /* HotkeyManager.swift */; };
 		BB0000090000000000000001 /* OverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000100000000000000001 /* OverlayWindow.swift */; };
+		BB0000270000000000000001 /* DrawModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000280000000000000001 /* DrawModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +21,7 @@
 		BB0000060000000000000001 /* SingleInstance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleInstance.swift; sourceTree = "<group>"; };
 		BB0000080000000000000001 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		BB0000100000000000000001 /* OverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayWindow.swift; sourceTree = "<group>"; };
+		BB0000280000000000000001 /* DrawModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawModel.swift; sourceTree = "<group>"; };
 		BB0000110000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB0000120000000000000001 /* DemoInk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DemoInk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -51,6 +53,7 @@
 				BB0000060000000000000001 /* SingleInstance.swift */,
 				BB0000080000000000000001 /* HotkeyManager.swift */,
 				BB0000100000000000000001 /* OverlayWindow.swift */,
+				BB0000280000000000000001 /* DrawModel.swift */,
 				BB0000110000000000000001 /* Info.plist */,
 			);
 			path = DemoInk;
@@ -132,6 +135,7 @@
 				BB0000050000000000000001 /* SingleInstance.swift in Sources */,
 				BB0000070000000000000001 /* HotkeyManager.swift in Sources */,
 				BB0000090000000000000001 /* OverlayWindow.swift in Sources */,
+				BB0000270000000000000001 /* DrawModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
