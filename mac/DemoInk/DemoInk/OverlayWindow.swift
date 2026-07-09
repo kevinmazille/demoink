@@ -16,6 +16,10 @@ final class OverlayWindow: NSWindow {
         backgroundColor = .clear
         isOpaque = false
         hasShadow = false
+        // We keep a strong Swift reference and set it to nil on close; leaving
+        // the AppKit default (release-on-close) would double-free the window
+        // and crash in objc_release during the runloop's pool pop.
+        isReleasedWhenClosed = false
         level = .screenSaver
         ignoresMouseEvents = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
@@ -40,6 +44,7 @@ final class OverlayView: NSView {
     // Current tool state (frozen into each DrawLine at stroke start).
     private var colorIndex = DrawModel.defaultColorIndex
     private var penWidth = DrawModel.defaultPenWidth
+    private var theme: Theme = .transparent
     private var alpha = DrawModel.lineAlpha
 
     override var isFlipped: Bool { true } // top-left origin, like Windows
@@ -48,7 +53,73 @@ final class OverlayView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        window?.makeFirstResponder(self)
+        if window != nil {
+            window?.makeFirstResponder(self)
+        } else if cursorPoint != nil {
+            // Overlay closed while the cursor was hidden — restore it so the
+            // system arrow doesn't stay hidden everywhere.
+            NSCursor.unhide()
+            cursorPoint = nil
+        }
+    }
+
+    // MARK: - Cursor indicator
+
+    /// Live position of the pointer inside the overlay; the colour ball is
+    /// painted here every frame. nil while the pointer is outside the view.
+    private var cursorPoint: CGPoint?
+
+    /// A tracking area spanning the whole view so we hide the system cursor and
+    /// follow the mouse (moved *and* dragged) across the entire overlay.
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(
+            rect: bounds,
+            options: [.activeAlways, .mouseMoved, .mouseEnteredAndExited, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        ))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        NSCursor.hide() // only the colour ball should be visible, no system arrow
+        cursorPoint = convert(event.locationInWindow, from: nil)
+        needsDisplay = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        NSCursor.unhide()
+        cursorPoint = nil
+        needsDisplay = true
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        cursorPoint = convert(event.locationInWindow, from: nil)
+        needsDisplay = true
+    }
+
+    /// Nudge a redraw of the ball after a colour/width/theme change.
+    private func refreshCursor() {
+        needsDisplay = true
+    }
+
+    /// Paints the pen-tip indicator: a filled disc of the current ink colour,
+    /// sized to the pen width — faithful to the Windows draw cursor, but drawn
+    /// in-view so no system cursor ever shows.
+    private func drawCursorIndicator() {
+        guard let p = cursorPoint else { return }
+        let dia = max(min(penWidth, 24), 6) // clamp so the disc stays usable
+        let discRect = NSRect(x: p.x - dia / 2, y: p.y - dia / 2, width: dia, height: dia)
+
+        let color = DrawModel.color(atIndex: colorIndex, alpha: alpha, theme: theme)
+        color.setFill()
+        NSBezierPath(ovalIn: discRect).fill()
+        // A hairline outline keeps a light-on-light disc visible.
+        NSColor(white: 0, alpha: 0.35).setStroke()
+        let ring = NSBezierPath(ovalIn: discRect)
+        ring.lineWidth = 1
+        ring.stroke()
     }
 
     // MARK: - Mouse
@@ -56,6 +127,7 @@ final class OverlayView: NSView {
     // A stroke begins on either button; the button (left/right) plus the held
     // modifiers decide the LineType live during the drag, per the Windows model.
     private func beginStroke(at p: CGPoint) {
+        cursorPoint = p
         var line = DrawLine()
         line.colorIndex = colorIndex
         line.penWidth = penWidth
@@ -80,6 +152,7 @@ final class OverlayView: NSView {
     override func mouseDragged(with event: NSEvent) {
         guard isDrawing, !lines.isEmpty else { return }
         let p = convert(event.locationInWindow, from: nil)
+        cursorPoint = p
         let flags = event.modifierFlags
         let idx = lines.count - 1
 
@@ -109,6 +182,7 @@ final class OverlayView: NSView {
     override func rightMouseDragged(with event: NSEvent) {
         guard isDrawing, !lines.isEmpty else { return }
         var p = convert(event.locationInWindow, from: nil)
+        cursorPoint = p
         let flags = event.modifierFlags
         let idx = lines.count - 1
         let start = lines[idx].lineStart
@@ -141,6 +215,7 @@ final class OverlayView: NSView {
         } else if event.deltaY < 0 {
             penWidth = max(penWidth - 1, DrawModel.minPenWidth)
         }
+        refreshCursor()
     }
 
     // MARK: - Keyboard
@@ -156,15 +231,19 @@ final class OverlayView: NSView {
             return
         case 126: // Up arrow — thicker
             penWidth = min(penWidth + 1, DrawModel.maxPenWidth)
+            refreshCursor()
             return
         case 125: // Down arrow — thinner
             penWidth = max(penWidth - 1, DrawModel.minPenWidth)
+            refreshCursor()
             return
         case 123: // Left arrow — previous color
             colorIndex = (colorIndex + 9) % 10
+            refreshCursor()
             return
         case 124: // Right arrow — next color
             colorIndex = (colorIndex + 1) % 10
+            refreshCursor()
             return
         default:
             break
@@ -173,15 +252,41 @@ final class OverlayView: NSView {
         guard let chars = event.charactersIgnoringModifiers else { return }
         if let digit = Int(chars), digit >= 0, digit <= 9 {
             colorIndex = digit
+            refreshCursor()
             return
         }
         switch chars.lowercased() {
         case "w": // erase all
             lines.removeAll()
             needsDisplay = true
+        case "q": // cycle theme (Transparent → Light ↔ Dark)
+            toggleTheme()
         default:
             super.keyDown(with: event)
         }
+    }
+
+    // MARK: - Theme
+
+    /// Q key. First press from the pristine Transparent state wipes annotations
+    /// and starts fresh on the Light canvas; afterwards Q toggles Light ↔ Dark
+    /// and preserves the drawings, re-alpha'ing them to the new theme. Mirrors
+    /// ID_CMD_TOGGLETHEME in Commands.cpp.
+    private func toggleTheme() {
+        if theme == .transparent {
+            theme = .light
+            isDrawing = false
+            lines.removeAll()
+        } else {
+            theme = (theme == .light) ? .dark : .light
+        }
+        // Match the ink alpha to the new theme (opaque on Dark).
+        alpha = DrawModel.alpha(for: theme)
+        for i in lines.indices {
+            lines[i].alpha = alpha
+        }
+        refreshCursor()
+        needsDisplay = true
     }
 
     // MARK: - Rendering
@@ -191,8 +296,21 @@ final class OverlayView: NSView {
         guard let ctx = NSGraphicsContext.current else { return }
         ctx.imageInterpolation = .high
 
+        // Theme background: Transparent shows the desktop (clear window);
+        // Light/Dark paint a solid fill behind the annotations.
+        switch theme {
+        case .transparent:
+            break
+        case .light:
+            DrawModel.backgroundLight.setFill()
+            bounds.fill()
+        case .dark:
+            DrawModel.backgroundDark.setFill()
+            bounds.fill()
+        }
+
         for line in lines {
-            let color = DrawModel.color(atIndex: line.colorIndex, alpha: line.alpha)
+            let color = DrawModel.color(atIndex: line.colorIndex, alpha: line.alpha, theme: theme)
             color.setStroke()
             color.setFill()
 
@@ -227,6 +345,8 @@ final class OverlayView: NSView {
                 strokeShape(NSBezierPath(ovalIn: rect(from: line.lineStart, to: end)), width: line.penWidth)
             }
         }
+
+        drawCursorIndicator()
     }
 
     private func strokeShape(_ path: NSBezierPath, width: CGFloat) {
@@ -255,9 +375,9 @@ final class OverlayView: NSView {
         let dir = CGPoint(x: dx / len, y: dy / len)
         let perp = CGPoint(x: -dir.y, y: dir.x)
 
-        let headLen = min(max(penWidth * 4, 14), len)   // never longer than the arrow
+        let headLen = min(max(penWidth * 3, 10), len)   // never longer than the arrow
         let shaftHalf = max(penWidth, 1.5) / 2           // half the shaft thickness
-        let barbHalf = headLen * 0.42                    // arrowhead half-spread
+        let barbHalf = headLen * 0.35                    // arrowhead half-spread
 
         // Base of the head along the centreline; shaft runs from start to here.
         let base = CGPoint(x: end.x - dir.x * headLen, y: end.y - dir.y * headLen)
