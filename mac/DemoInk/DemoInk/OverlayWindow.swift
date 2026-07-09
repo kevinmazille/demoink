@@ -53,31 +53,83 @@ final class OverlayView: NSView {
 
     // MARK: - Mouse
 
-    override func mouseDown(with event: NSEvent) {
-        let p = convert(event.locationInWindow, from: nil)
+    // A stroke begins on either button; the button (left/right) plus the held
+    // modifiers decide the LineType live during the drag, per the Windows model.
+    private func beginStroke(at p: CGPoint) {
         var line = DrawLine()
         line.colorIndex = colorIndex
         line.penWidth = penWidth
         line.alpha = alpha
         line.points = [p]
+        line.lineStart = p
         lines.append(line)
         isDrawing = true
         needsDisplay = true
     }
 
+    override func mouseDown(with event: NSEvent) {
+        beginStroke(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        beginStroke(at: convert(event.locationInWindow, from: nil))
+    }
+
+    // Left-button drag: Shift+Ctrl→ellipse, Shift→rectangle, Ctrl→straight,
+    // else freehand. Mirrors WM_MOUSEMOVE / MK_LBUTTON in MainWindow.cpp.
     override func mouseDragged(with event: NSEvent) {
         guard isDrawing, !lines.isEmpty else { return }
         let p = convert(event.locationInWindow, from: nil)
-        // Skip sub-pixel jitter, matching the Windows >1px gate.
-        if let last = lines[lines.count - 1].points.last,
+        let flags = event.modifierFlags
+        let idx = lines.count - 1
+
+        if flags.contains(.shift) || flags.contains(.control) {
+            if flags.contains(.shift) {
+                lines[idx].lineType = flags.contains(.control) ? .ellipse : .rectangle
+            } else {
+                lines[idx].lineType = .straight
+            }
+            lines[idx].lineEnd = p
+            needsDisplay = true
+            return
+        }
+
+        // Freehand: skip sub-pixel jitter, matching the Windows >1px gate.
+        lines[idx].lineType = .hand
+        if let last = lines[idx].points.last,
            hypot(p.x - last.x, p.y - last.y) <= 1 {
             return
         }
-        lines[lines.count - 1].points.append(p)
+        lines[idx].points.append(p)
+        needsDisplay = true
+    }
+
+    // Right-button drag: arrow by default; Ctrl→straight; Shift constrains to
+    // the dominant axis. Mirrors WM_MOUSEMOVE / MK_RBUTTON in MainWindow.cpp.
+    override func rightMouseDragged(with event: NSEvent) {
+        guard isDrawing, !lines.isEmpty else { return }
+        var p = convert(event.locationInWindow, from: nil)
+        let flags = event.modifierFlags
+        let idx = lines.count - 1
+        let start = lines[idx].lineStart
+
+        if flags.contains(.shift) {
+            if abs(p.x - start.x) > abs(p.y - start.y) {
+                p.y = start.y // horizontal
+            } else {
+                p.x = start.x // vertical
+            }
+        }
+        lines[idx].lineType = flags.contains(.control) ? .straight : .arrow
+        lines[idx].lineEnd = p
         needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {
+        isDrawing = false
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
         isDrawing = false
     }
 
@@ -144,22 +196,86 @@ final class OverlayView: NSView {
             color.setStroke()
             color.setFill()
 
-            if line.points.count == 1 {
-                // Single click: a filled dot of pen-width diameter, matching
-                // the Windows FillEllipse case.
-                let r = line.penWidth / 2
-                let p = line.points[0]
-                let dot = NSBezierPath(ovalIn: NSRect(x: p.x - r, y: p.y - r,
-                                                      width: line.penWidth, height: line.penWidth))
-                dot.fill()
-            } else {
-                let path = OverlayView.cardinalSpline(through: line.points, tension: 0.5)
-                path.lineWidth = line.penWidth
-                path.lineCapStyle = .round
-                path.lineJoinStyle = .round
-                path.stroke()
+            switch line.lineType {
+            case .hand:
+                if line.points.count == 1 {
+                    // Single click: a filled dot of pen-width diameter, matching
+                    // the Windows FillEllipse case.
+                    let r = line.penWidth / 2
+                    let p = line.points[0]
+                    let dot = NSBezierPath(ovalIn: NSRect(x: p.x - r, y: p.y - r,
+                                                          width: line.penWidth, height: line.penWidth))
+                    dot.fill()
+                } else {
+                    let path = OverlayView.cardinalSpline(through: line.points, tension: 0.5)
+                    strokeShape(path, width: line.penWidth)
+                }
+            case .straight:
+                guard let end = line.lineEnd else { break }
+                let path = NSBezierPath()
+                path.move(to: line.lineStart)
+                path.line(to: end)
+                strokeShape(path, width: line.penWidth)
+            case .arrow:
+                guard let end = line.lineEnd else { break }
+                drawArrow(from: line.lineStart, to: end, penWidth: line.penWidth)
+            case .rectangle:
+                guard let end = line.lineEnd else { break }
+                strokeShape(NSBezierPath(rect: rect(from: line.lineStart, to: end)), width: line.penWidth)
+            case .ellipse:
+                guard let end = line.lineEnd else { break }
+                strokeShape(NSBezierPath(ovalIn: rect(from: line.lineStart, to: end)), width: line.penWidth)
             }
         }
+    }
+
+    private func strokeShape(_ path: NSBezierPath, width: CGFloat) {
+        path.lineWidth = width
+        path.lineCapStyle = .round
+        path.lineJoinStyle = .round
+        path.stroke()
+    }
+
+    private func rect(from a: CGPoint, to b: CGPoint) -> NSRect {
+        NSRect(x: min(a.x, b.x), y: min(a.y, b.y),
+               width: abs(b.x - a.x), height: abs(b.y - a.y))
+    }
+
+    /// Draws an arrow as a *single* filled polygon that outlines the whole
+    /// shape — shaft rectangle + arrowhead in one closed path, filled once.
+    /// GDI+ had LineCapArrowAnchor; NSBezierPath has no arrow cap, and stroking
+    /// a shaft then filling a separate head made the two overlap. Under
+    /// semi-transparent ink that overlap composited darker and looked ragged.
+    /// One fill = uniform alpha everywhere, no seam.
+    private func drawArrow(from start: CGPoint, to end: CGPoint, penWidth: CGFloat) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let len = hypot(dx, dy)
+        guard len > 0.5 else { return }
+
+        let dir = CGPoint(x: dx / len, y: dy / len)
+        let perp = CGPoint(x: -dir.y, y: dir.x)
+
+        let headLen = min(max(penWidth * 4, 14), len)   // never longer than the arrow
+        let shaftHalf = max(penWidth, 1.5) / 2           // half the shaft thickness
+        let barbHalf = headLen * 0.42                    // arrowhead half-spread
+
+        // Base of the head along the centreline; shaft runs from start to here.
+        let base = CGPoint(x: end.x - dir.x * headLen, y: end.y - dir.y * headLen)
+
+        func offset(_ p: CGPoint, _ v: CGPoint, _ d: CGFloat) -> CGPoint {
+            CGPoint(x: p.x + v.x * d, y: p.y + v.y * d)
+        }
+
+        let path = NSBezierPath()
+        path.move(to: offset(start, perp, shaftHalf))      // shaft, one side
+        path.line(to: offset(base, perp, shaftHalf))
+        path.line(to: offset(base, perp, barbHalf))        // barb 1
+        path.line(to: end)                                 // tip
+        path.line(to: offset(base, perp, -barbHalf))       // barb 2
+        path.line(to: offset(base, perp, -shaftHalf))
+        path.line(to: offset(start, perp, -shaftHalf))     // shaft, other side
+        path.close()
+        path.fill()
     }
 
     /// Cardinal spline through the given points, converted to cubic Béziers.

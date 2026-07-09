@@ -1,18 +1,26 @@
 import AppKit
 
-/// Kind of annotation. Only `.hand` (freehand) exists in Stage 2; shapes
-/// (straight/arrow/rectangle/ellipse) and text arrive in later stages.
-/// Mirrors `LineType` in the Windows `MainWindow.h`.
+/// Kind of annotation. Text arrives in a later stage. The `LineType` can flip
+/// live during a drag according to the held modifiers, exactly like the Windows
+/// `LineType` in `MainWindow.h`.
 enum LineType {
     case hand
+    case straight
+    case arrow
+    case rectangle
+    case ellipse
 }
 
 /// One annotation stroke. Deliberately faithful to the Windows `DrawLine`
-/// model (MainWindow.h) so later stages can extend it without reshaping the
-/// port: points captured live, plus the color/width/alpha frozen at draw time.
+/// model (MainWindow.h): `points` holds the live freehand polyline, while
+/// `lineStart`/`lineEnd` drive the two-point shapes (straight/arrow/rect/
+/// ellipse). Color/width/alpha are frozen at draw time.
 struct DrawLine {
     var lineType: LineType = .hand
     var points: [CGPoint] = []
+    /// nil until the drag sets the far corner/endpoint (shapes only).
+    var lineStart: CGPoint = .zero
+    var lineEnd: CGPoint?
     var colorIndex: Int = DrawModel.defaultColorIndex
     var penWidth: CGFloat = DrawModel.defaultPenWidth
     /// 0...255, matching the Win32 BYTE alpha.
