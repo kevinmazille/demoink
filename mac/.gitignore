@@ -1,0 +1,9 @@
+# Throwaway POC — kept locally for reference, never committed (Kevin's call).
+POC/
+
+# macOS / Xcode cruft
+.DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
