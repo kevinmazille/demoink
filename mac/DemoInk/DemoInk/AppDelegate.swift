@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             overlayWindow.close()
             self.overlayWindow = nil
         } else {
-            guard let screen = NSScreen.main else { return }
+            guard let screen = screenUnderMouse() else { return }
             let window = OverlayWindow(screen: screen)
             (window.contentView as? OverlayView)?.onExit = { [weak self] in
                 self?.toggleOverlay()
@@ -57,5 +57,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
             overlayWindow = window
         }
+    }
+
+    /// The screen the pointer is currently on, so the overlay opens where the
+    /// user is working (multi-monitor) rather than always on the main display.
+    /// Falls back to the main screen if none matches.
+    private func screenUnderMouse() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
+            ?? NSScreen.main
     }
 }

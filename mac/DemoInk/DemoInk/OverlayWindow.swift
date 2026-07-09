@@ -5,13 +5,18 @@ import AppKit
 /// keyDown for the draw-mode shortcuts (undo, colors, width, erase, Esc).
 final class OverlayWindow: NSWindow {
     convenience init(screen: NSScreen) {
+        // Create with a zero-based rect, then place the window explicitly with
+        // `setFrame` in global coordinates. Passing `screen:` to the initializer
+        // reinterprets `contentRect` relative to that screen, which double-counts
+        // a secondary display's offset and lands the window off-screen — the
+        // reason the overlay only ever appeared on the main display.
         self.init(
-            contentRect: screen.frame,
+            contentRect: NSRect(origin: .zero, size: screen.frame.size),
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
-            defer: false,
-            screen: screen
+            defer: false
         )
+        setFrame(screen.frame, display: true)
 
         backgroundColor = .clear
         isOpaque = false
@@ -23,7 +28,13 @@ final class OverlayWindow: NSWindow {
         level = .screenSaver
         ignoresMouseEvents = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        contentView = OverlayView(frame: screen.frame)
+        // The content view frame is expressed in the *window's* coordinate space,
+        // which always starts at zero — NOT in global screen coordinates. Using
+        // `screen.frame` here happens to work on the main display (origin ≈ zero)
+        // but on a secondary display the non-zero origin shoves the drawing
+        // surface off the window, so nothing renders and mouse tracking misses.
+        // Size to the screen but anchor at the origin.
+        contentView = OverlayView(frame: NSRect(origin: .zero, size: screen.frame.size))
     }
 
     // Borderless windows refuse key status by default; drawing shortcuts need it.
@@ -48,6 +59,12 @@ final class OverlayView: NSView {
     private var boardStyle: BoardStyle = .none
     private var alpha = DrawModel.lineAlpha
 
+    // Text mode: while active the last line is a .text line that follows the
+    // mouse until a click commits it; keystrokes edit it and a caret blinks.
+    private var isTextMode = false
+    private var caretVisible = true
+    private var caretTimer: Timer?
+
     override var isFlipped: Bool { true } // top-left origin, like Windows
 
     override var acceptsFirstResponder: Bool { true }
@@ -56,11 +73,16 @@ final class OverlayView: NSView {
         super.viewDidMoveToWindow()
         if window != nil {
             window?.makeFirstResponder(self)
-        } else if cursorPoint != nil {
-            // Overlay closed while the cursor was hidden — restore it so the
-            // system arrow doesn't stay hidden everywhere.
-            NSCursor.unhide()
-            cursorPoint = nil
+        } else {
+            // Overlay closing: stop the caret timer and, if the cursor was
+            // hidden, restore it so the system arrow doesn't stay hidden.
+            caretTimer?.invalidate()
+            caretTimer = nil
+            isTextMode = false
+            if cursorPoint != nil {
+                NSCursor.unhide()
+                cursorPoint = nil
+            }
         }
     }
 
@@ -96,7 +118,12 @@ final class OverlayView: NSView {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        cursorPoint = convert(event.locationInWindow, from: nil)
+        let p = convert(event.locationInWindow, from: nil)
+        cursorPoint = p
+        // Before it's committed, the text line tracks the pointer.
+        if isTextMode, let idx = lines.indices.last, lines[idx].lineType == .text {
+            lines[idx].lineStart = p
+        }
         needsDisplay = true
     }
 
@@ -109,7 +136,9 @@ final class OverlayView: NSView {
     /// sized to the pen width — faithful to the Windows draw cursor, but drawn
     /// in-view so no system cursor ever shows.
     private func drawCursorIndicator() {
-        guard let p = cursorPoint else { return }
+        // In text mode the caret is the indicator; the colour ball would just
+        // overlap it, so suppress it.
+        guard !isTextMode, let p = cursorPoint else { return }
         let dia = max(min(penWidth, 24), 6) // clamp so the disc stays usable
         let discRect = NSRect(x: p.x - dia / 2, y: p.y - dia / 2, width: dia, height: dia)
 
@@ -222,10 +251,17 @@ final class OverlayView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        // A left click commits the text and leaves text mode (Windows behaviour:
+        // the text stops following the mouse and is dropped in place).
+        if isTextMode {
+            exitTextMode(commit: true)
+            return
+        }
         beginStroke(at: convert(event.locationInWindow, from: nil))
     }
 
     override func rightMouseDown(with event: NSEvent) {
+        guard !isTextMode else { return }
         beginStroke(at: convert(event.locationInWindow, from: nil))
     }
 
@@ -292,6 +328,17 @@ final class OverlayView: NSView {
     // MARK: - Scroll wheel = pen width (matches Windows wheel-resizes)
 
     override func scrollWheel(with event: NSEvent) {
+        // In text mode the wheel resizes the font (±4, clamped); otherwise it
+        // resizes the pen — matching the Windows wheel-resizes behaviour.
+        if isTextMode, let idx = lines.indices.last, lines[idx].lineType == .text {
+            if event.deltaY > 0 {
+                lines[idx].fontSize = min(lines[idx].fontSize + DrawModel.fontStep, DrawModel.maxFontSize)
+            } else if event.deltaY < 0 {
+                lines[idx].fontSize = max(lines[idx].fontSize - DrawModel.fontStep, DrawModel.minFontSize)
+            }
+            needsDisplay = true
+            return
+        }
         if event.deltaY > 0 {
             penWidth = min(penWidth + 1, DrawModel.maxPenWidth)
         } else if event.deltaY < 0 {
@@ -303,6 +350,13 @@ final class OverlayView: NSView {
     // MARK: - Keyboard
 
     override func keyDown(with event: NSEvent) {
+        // In text mode every key edits the text: shortcuts are suppressed, just
+        // like Windows skips TranslateAccelerator while typing (DemoHelper.cpp).
+        if isTextMode {
+            handleTextKey(event)
+            return
+        }
+
         switch event.keyCode {
         case 53: // Esc — exit draw mode
             onExit?()
@@ -345,9 +399,79 @@ final class OverlayView: NSView {
             toggleTheme()
         case "z": // cycle board frame (None → A → B → A)
             cycleBoard()
+        case "a": // enter text mode
+            enterTextMode()
         default:
             super.keyDown(with: event)
         }
+    }
+
+    // MARK: - Text mode
+
+    /// A key. Starts a new .text line at the pointer, following the mouse until
+    /// a click commits it. Alpha follows the theme like strokes; a caret blinks
+    /// at 500 ms. Mirrors ID_CMD_TEXTMODE in Commands.cpp.
+    private func enterTextMode() {
+        guard !isTextMode else { return }
+        var line = DrawLine()
+        line.lineType = .text
+        line.colorIndex = colorIndex
+        line.penWidth = penWidth
+        line.alpha = alpha
+        line.fontSize = DrawModel.defaultFontSize
+        line.fontName = DrawModel.defaultFontName
+        line.lineStart = cursorPoint ?? CGPoint(x: bounds.midX, y: bounds.midY)
+        lines.append(line)
+
+        isTextMode = true
+        isDrawing = false
+        caretVisible = true
+        caretTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self, self.isTextMode else { return }
+            self.caretVisible.toggle()
+            self.needsDisplay = true
+        }
+        needsDisplay = true
+    }
+
+    /// Edits the active text line. Backspace deletes; Esc cancels (drops the
+    /// line, stays in the overlay); Return is ignored; printable characters
+    /// append. Mirrors the WM_CHAR handler in MainWindow.cpp.
+    private func handleTextKey(_ event: NSEvent) {
+        guard isTextMode, let idx = lines.indices.last, lines[idx].lineType == .text else {
+            exitTextMode(commit: false)
+            return
+        }
+        switch event.keyCode {
+        case 53: // Esc — cancel this text line
+            exitTextMode(commit: false)
+            return
+        case 51, 117: // Backspace / Forward-delete
+            if !lines[idx].text.isEmpty { lines[idx].text.removeLast() }
+        case 36, 76: // Return / Enter — commit the text
+            exitTextMode(commit: true)
+            return
+        default:
+            if let s = event.characters, !s.isEmpty,
+               s.unicodeScalars.allSatisfy({ $0.value >= 0x20 }) {
+                lines[idx].text.append(s)
+            }
+        }
+        needsDisplay = true
+    }
+
+    /// Leaves text mode. On commit an empty text line is discarded; on cancel
+    /// the line is always dropped. Kills the caret timer either way.
+    private func exitTextMode(commit: Bool) {
+        caretTimer?.invalidate()
+        caretTimer = nil
+        isTextMode = false
+        if let idx = lines.indices.last, lines[idx].lineType == .text {
+            if !commit || lines[idx].text.isEmpty {
+                lines.remove(at: idx)
+            }
+        }
+        needsDisplay = true
     }
 
     // MARK: - Theme & board
@@ -456,10 +580,51 @@ final class OverlayView: NSView {
             case .ellipse:
                 guard let end = line.lineEnd else { break }
                 strokeShape(NSBezierPath(ovalIn: rect(from: line.lineStart, to: end)), width: line.penWidth)
+            case .text:
+                drawText(line, color: color)
             }
         }
 
+        if isTextMode, caretVisible {
+            drawTextCaret()
+        }
+
         drawCursorIndicator()
+    }
+
+    /// Draws a committed or in-progress text line. Origin = top-left of the em
+    /// box at `lineStart`, faithful to the Windows `DrawString` placement.
+    private func drawText(_ line: DrawLine, color: NSColor) {
+        guard !line.text.isEmpty, line.lineStart.x >= 0, line.lineStart.y >= 0 else { return }
+        let font = DrawModel.resolveTextFont(line.fontName, size: line.fontSize)
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
+        (line.text as NSString).draw(at: line.lineStart, withAttributes: attrs)
+    }
+
+    /// Blinking caret shown only while typing, anchored on the text baseline so
+    /// the text sits at the bottom of the caret (matches RenderTextCaret). Not
+    /// part of the annotation list, so it never lands in a screenshot.
+    private func drawTextCaret() {
+        guard let idx = lines.indices.last, lines[idx].lineType == .text else { return }
+        let line = lines[idx]
+        let font = DrawModel.resolveTextFont(line.fontName, size: line.fontSize)
+
+        // Caret X = origin + width of the text typed so far.
+        var caretX = line.lineStart.x
+        if !line.text.isEmpty {
+            let w = (line.text as NSString).size(withAttributes: [.font: font]).width
+            caretX += w
+        }
+        // Height = ascent; bottom anchored on the baseline (origin.y + ascent).
+        let caretHeight = font.ascender
+        let caretY = line.lineStart.y // top of em box; caret spans down to baseline
+        let color = DrawModel.color(atIndex: line.colorIndex, alpha: DrawModel.opaqueAlpha, theme: theme)
+        color.setStroke()
+        let caret = NSBezierPath()
+        caret.move(to: CGPoint(x: caretX, y: caretY))
+        caret.line(to: CGPoint(x: caretX, y: caretY + caretHeight))
+        caret.lineWidth = max(2, line.fontSize / 16)
+        caret.stroke()
     }
 
     private func strokeShape(_ path: NSBezierPath, width: CGFloat) {

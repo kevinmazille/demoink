@@ -1,14 +1,14 @@
 import AppKit
 
-/// Kind of annotation. Text arrives in a later stage. The `LineType` can flip
-/// live during a drag according to the held modifiers, exactly like the Windows
-/// `LineType` in `MainWindow.h`.
+/// Kind of annotation. The `LineType` can flip live during a drag according to
+/// the held modifiers, exactly like the Windows `LineType` in `MainWindow.h`.
 enum LineType {
     case hand
     case straight
     case arrow
     case rectangle
     case ellipse
+    case text
 }
 
 /// One annotation stroke. Deliberately faithful to the Windows `DrawLine`
@@ -25,6 +25,11 @@ struct DrawLine {
     var penWidth: CGFloat = DrawModel.defaultPenWidth
     /// 0...255, matching the Win32 BYTE alpha.
     var alpha: Int = DrawModel.lineAlpha
+    /// Text-mode fields. `lineStart` doubles as the text origin (top-left of the
+    /// em box, like the Windows `lineStartPoint`).
+    var text: String = ""
+    var fontSize: CGFloat = DrawModel.defaultFontSize
+    var fontName: String = DrawModel.defaultFontName
 }
 
 /// Overlay theme. Mirrors `Theme` in MainWindow.h.
@@ -62,6 +67,28 @@ enum DrawModel {
     static let defaultPenWidth: CGFloat = 6
     static let minPenWidth: CGFloat = 1
     static let maxPenWidth: CGFloat = 32
+
+    /// Text mode. Default size 30 like the Windows `Text/defaultsize`; wheel
+    /// adjusts by 4 within [8, 256]. The font list favours a handwritten look
+    /// (the Windows default was Segoe Print) but every entry is a macOS system
+    /// font, with `resolveTextFont` falling back to the first available.
+    static let defaultFontSize: CGFloat = 30
+    static let minFontSize: CGFloat = 8
+    static let maxFontSize: CGFloat = 256
+    static let fontStep: CGFloat = 4
+    static let textFonts = ["Avenir Next", "Helvetica Neue", "Bradley Hand", "Marker Felt"]
+    static var defaultFontName: String { textFonts[0] }
+
+    /// Mirrors the Windows `ResolveTextFont`: the configured (here: default)
+    /// font if installed, else the first available in the list, else the system
+    /// font. Guarantees `NSFont(name:size:)` never comes back nil at draw time.
+    static func resolveTextFont(_ name: String, size: CGFloat) -> NSFont {
+        if let f = NSFont(name: name, size: size) { return f }
+        for candidate in textFonts {
+            if let f = NSFont(name: candidate, size: size) { return f }
+        }
+        return NSFont.systemFont(ofSize: size)
+    }
 
     /// Solid background fills for the Light / Dark themes (Win32 DEFAULT_BG_*).
     static let backgroundLight = NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 1)
