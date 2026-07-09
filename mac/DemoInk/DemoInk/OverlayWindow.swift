@@ -45,6 +45,7 @@ final class OverlayView: NSView {
     private var colorIndex = DrawModel.defaultColorIndex
     private var penWidth = DrawModel.defaultPenWidth
     private var theme: Theme = .transparent
+    private var boardStyle: BoardStyle = .none
     private var alpha = DrawModel.lineAlpha
 
     override var isFlipped: Bool { true } // top-left origin, like Windows
@@ -120,6 +121,87 @@ final class OverlayView: NSView {
         let ring = NSBezierPath(ovalIn: discRect)
         ring.lineWidth = 1
         ring.stroke()
+    }
+
+    // MARK: - Board frame
+
+    /// Decorative "board" behind the annotations, a faithful port of the Windows
+    /// `PaintBoardFrame`. Geometry is authored in a 1920×1080 design space and
+    /// scaled to the live view; the flipped (top-left origin) coordinate system
+    /// matches the original directly. Frame A = light whiteboard, B = dark slate.
+    private func drawBoardFrame() {
+        let cx = bounds.width, cy = bounds.height
+        guard cx > 0, cy > 0 else { return }
+
+        let sx = cx / 1920.0, sy = cy / 1080.0
+        let s = sy // uniform scale for stroke widths / tick sizes
+        func X(_ v: CGFloat) -> CGFloat { v * sx }
+        func Y(_ v: CGFloat) -> CGFloat { v * sy }
+        func W(_ v: CGFloat) -> CGFloat { max(1, v * s) }
+
+        let clay = NSColor(srgbRed: 0xD9 / 255, green: 0x77 / 255, blue: 0x57 / 255, alpha: 1)
+
+        if boardStyle == .frameA {
+            // Light whiteboard: paper gradient, grey mat border, thin clay
+            // liseré framing the ~95% canvas, plus corner registration ticks.
+            let full = NSRect(x: 0, y: 0, width: cx, height: cy)
+            let paper = NSGradient(starting: NSColor(srgbRed: 0xFD / 255, green: 0xFD / 255, blue: 0xFC / 255, alpha: 1),
+                                   ending: NSColor(srgbRed: 0xF4 / 255, green: 0xF2 / 255, blue: 0xEE / 255, alpha: 1))
+            paper?.draw(in: full, angle: -90) // vertical, top→bottom in flipped space
+
+            // Grey mat: a thick border stroke around the outer edge.
+            let mat = NSColor(srgbRed: 0xE7 / 255, green: 0xE3 / 255, blue: 0xDC / 255, alpha: 1)
+            mat.setStroke()
+            let matRect = NSRect(x: X(14), y: Y(14), width: X(1920) - X(28), height: Y(1080) - Y(28))
+            let matPath = NSBezierPath(rect: matRect)
+            matPath.lineWidth = W(28)
+            matPath.stroke()
+
+            // Thin clay liseré, rounded, framing the drawing zone.
+            clay.setStroke()
+            let liseré = NSBezierPath(roundedRect: NSRect(x: X(34), y: Y(34), width: X(1852), height: Y(1012)),
+                                      xRadius: W(8), yRadius: W(8))
+            liseré.lineWidth = W(3)
+            liseré.stroke()
+
+            // Corner registration ticks.
+            clay.setStroke()
+            func tick(_ x1: CGFloat, _ y1: CGFloat, _ x2: CGFloat, _ y2: CGFloat) {
+                let p = NSBezierPath()
+                p.move(to: CGPoint(x: X(x1), y: Y(y1)))
+                p.line(to: CGPoint(x: X(x2), y: Y(y2)))
+                p.lineWidth = W(4)
+                p.lineCapStyle = .round
+                p.stroke()
+            }
+            tick(60, 34, 60, 70);      tick(34, 60, 70, 60)       // top-left
+            tick(1860, 34, 1860, 70);  tick(1886, 60, 1850, 60)   // top-right
+            tick(60, 1046, 60, 1010);  tick(34, 1020, 70, 1020)   // bottom-left
+            tick(1860, 1046, 1860, 1010); tick(1886, 1020, 1850, 1020) // bottom-right
+        } else if boardStyle == .frameB {
+            // Dark slate board: bevelled frame, radial slate canvas, clay tray.
+            let full = NSRect(x: 0, y: 0, width: cx, height: cy)
+            let frame = NSGradient(starting: NSColor(srgbRed: 0x3A / 255, green: 0x3D / 255, blue: 0x42 / 255, alpha: 1),
+                                   ending: NSColor(srgbRed: 0x2C / 255, green: 0x2E / 255, blue: 0x33 / 255, alpha: 1))
+            frame?.draw(in: full, angle: -90)
+
+            // Inner bevel highlight.
+            NSColor(srgbRed: 0x4A / 255, green: 0x4D / 255, blue: 0x53 / 255, alpha: 1).setStroke()
+            let bevel = NSBezierPath(rect: NSRect(x: X(22), y: Y(22), width: X(1920) - X(44), height: Y(1080) - Y(44)))
+            bevel.lineWidth = W(2)
+            bevel.stroke()
+
+            // Slate canvas (~95%), radial gradient centre-biased upward.
+            let canvas = NSRect(x: X(40), y: Y(40), width: X(1840), height: Y(1000))
+            let slate = NSGradient(starting: NSColor(srgbRed: 0x2A / 255, green: 0x2D / 255, blue: 0x31 / 255, alpha: 1),
+                                   ending: NSColor(srgbRed: 0x20 / 255, green: 0x22 / 255, blue: 0x25 / 255, alpha: 1))
+            let canvasPath = NSBezierPath(rect: canvas)
+            slate?.draw(in: canvasPath, relativeCenterPosition: NSPoint(x: 0, y: -0.16))
+
+            // Clay tray baseline at the bottom of the board.
+            NSColor(srgbRed: 0xD9 / 255, green: 0x77 / 255, blue: 0x57 / 255, alpha: 0xD9 / 255).setFill()
+            NSRect(x: X(40), y: Y(1028), width: X(1840), height: Y(12)).fill()
+        }
     }
 
     // MARK: - Mouse
@@ -261,17 +343,19 @@ final class OverlayView: NSView {
             needsDisplay = true
         case "q": // cycle theme (Transparent → Light ↔ Dark)
             toggleTheme()
+        case "z": // cycle board frame (None → A → B → A)
+            cycleBoard()
         default:
             super.keyDown(with: event)
         }
     }
 
-    // MARK: - Theme
+    // MARK: - Theme & board
 
     /// Q key. First press from the pristine Transparent state wipes annotations
     /// and starts fresh on the Light canvas; afterwards Q toggles Light ↔ Dark
-    /// and preserves the drawings, re-alpha'ing them to the new theme. Mirrors
-    /// ID_CMD_TOGGLETHEME in Commands.cpp.
+    /// and preserves the drawings, re-alpha'ing them to the new theme. Q also
+    /// clears any board frame. Mirrors ID_CMD_TOGGLETHEME in Commands.cpp.
     private func toggleTheme() {
         if theme == .transparent {
             theme = .light
@@ -280,7 +364,31 @@ final class OverlayView: NSView {
         } else {
             theme = (theme == .light) ? .dark : .light
         }
-        // Match the ink alpha to the new theme (opaque on Dark).
+        boardStyle = .none
+        reapplyThemeAlpha()
+    }
+
+    /// Z key. Cycles the board frame None→A→B→A. FrameA couples to Light,
+    /// FrameB to Dark. Wipe rule shared with Q: leaving pristine Transparent
+    /// clears the drawings; any later switch preserves them and re-alphas to the
+    /// new theme. Mirrors ID_CMD_CYCLEBOARD in Commands.cpp.
+    private func cycleBoard() {
+        let leavingTransparent = (theme == .transparent)
+        if boardStyle == .none {
+            boardStyle = .frameA
+        } else {
+            boardStyle = (boardStyle == .frameA) ? .frameB : .frameA
+        }
+        theme = (boardStyle == .frameA) ? .light : .dark
+        if leavingTransparent {
+            isDrawing = false
+            lines.removeAll()
+        }
+        reapplyThemeAlpha()
+    }
+
+    /// Match the ink alpha to the current theme (opaque on Dark) and refresh.
+    private func reapplyThemeAlpha() {
         alpha = DrawModel.alpha(for: theme)
         for i in lines.indices {
             lines[i].alpha = alpha
@@ -307,6 +415,11 @@ final class OverlayView: NSView {
         case .dark:
             DrawModel.backgroundDark.setFill()
             bounds.fill()
+        }
+
+        // Board frame sits above the solid fill, below the annotations.
+        if boardStyle != .none {
+            drawBoardFrame()
         }
 
         for line in lines {

@@ -39,6 +39,17 @@ enum Theme {
     var isDark: Bool { self == .dark }
 }
 
+/// Decorative "board" behind the annotations. Mirrors `BoardStyle` in
+/// MainWindow.h. Coupled to the theme like Windows: FrameA↔Light (light
+/// whiteboard), FrameB↔Dark (dark slate). `Z` cycles None→A→B→A; `Q` resets
+/// it to None. Each frame is vector-drawn (a user image replacement comes with
+/// the settings stage).
+enum BoardStyle {
+    case none
+    case frameA
+    case frameB
+}
+
 /// Constants and the color palettes carried over from the Windows build.
 enum DrawModel {
     /// Semi-transparent ink on the Transparent/Light theme (Win32 `LINE_ALPHA`).
