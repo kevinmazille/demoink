@@ -521,6 +521,70 @@ final class OverlayView: NSView {
         needsDisplay = true
     }
 
+    // MARK: - Auto-screenshot
+
+    /// Saves the annotated screen on exit, faithful to the Windows
+    /// `SaveScreenshot`: no-op when nothing was drawn or auto-capture is off.
+    /// Runs the (async) desktop capture while the window is still on-screen, then
+    /// calls `completion` so the caller can close the overlay. `completion` always
+    /// fires — on the main actor — even on the no-op / failure paths.
+    func saveScreenshotIfNeeded(completion: @escaping () -> Void) {
+        guard !lines.isEmpty, Screenshot.isEnabled else {
+            completion()
+            return
+        }
+
+        // Snapshot the client name and screen/window now, on the main thread,
+        // before anything can tear down.
+        let client = Screenshot.meetClientName()
+        let screen = window?.screen
+        let windowNumber = window?.windowNumber
+        let needsDesktop = (theme == .transparent)
+
+        Task { @MainActor in
+            // Transparent theme shows the real desktop through the clear overlay,
+            // so capture what's below our window. Light/Dark paint their own
+            // opaque background, so no desktop capture is needed.
+            var desktop: CGImage?
+            if needsDesktop, let screen, let windowNumber {
+                desktop = await Screenshot.captureDesktop(screen: screen, excludingWindow: windowNumber)
+            }
+            if let image = composedScreenshot(desktopBelow: desktop) {
+                Screenshot.save(image, client: client)
+            }
+            completion()
+        }
+    }
+
+    /// Flattens the overlay to a native-resolution image: the desktop (or the
+    /// theme's solid fill + board) underneath, every annotation on top, and never
+    /// the cursor ball or caret.
+    private func composedScreenshot(desktopBelow: CGImage?) -> NSImage? {
+        let ptSize = bounds.size
+        guard ptSize.width > 0, ptSize.height > 0 else { return nil }
+
+        // Render background/board/annotations at the backing scale. Nil out the
+        // pointer so the colour ball never lands in the capture; text mode is
+        // already off by the time we exit, so the caret won't draw either.
+        cursorPoint = nil
+        guard let viewRep = bitmapImageRepForCachingDisplay(in: bounds) else { return nil }
+        cacheDisplay(in: bounds, to: viewRep)
+
+        let pxW = viewRep.pixelsWide, pxH = viewRep.pixelsHigh
+        guard pxW > 0, pxH > 0,
+              let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let cg = CGContext(data: nil, width: pxW, height: pxH,
+                                 bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            return nil
+        }
+        let full = CGRect(x: 0, y: 0, width: pxW, height: pxH)
+        if let desktopBelow { cg.draw(desktopBelow, in: full) }
+        if let viewCG = viewRep.cgImage { cg.draw(viewCG, in: full) }
+        guard let out = cg.makeImage() else { return nil }
+        return NSImage(cgImage: out, size: ptSize)
+    }
+
     // MARK: - Rendering
 
     override func draw(_ dirtyRect: NSRect) {
