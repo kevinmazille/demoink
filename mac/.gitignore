@@ -7,3 +7,6 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 build/
+
+# Packaging output (package.sh) — build artifacts, never committed
+dist/
