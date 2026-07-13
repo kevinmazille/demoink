@@ -15,6 +15,8 @@
 		BB0000270000000000000001 /* DrawModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000280000000000000001 /* DrawModel.swift */; };
 		BB0000290000000000000001 /* Screenshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000300000000000000001 /* Screenshot.swift */; };
 		BB0000310000000000000001 /* PermissionsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000320000000000000001 /* PermissionsWindow.swift */; };
+		BB0000330000000000000001 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000340000000000000001 /* Settings.swift */; };
+		BB0000350000000000000001 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000360000000000000001 /* PreferencesWindow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +28,8 @@
 		BB0000280000000000000001 /* DrawModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawModel.swift; sourceTree = "<group>"; };
 		BB0000300000000000000001 /* Screenshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Screenshot.swift; sourceTree = "<group>"; };
 		BB0000320000000000000001 /* PermissionsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsWindow.swift; sourceTree = "<group>"; };
+		BB0000340000000000000001 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		BB0000360000000000000001 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
 		BB0000110000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB0000120000000000000001 /* DemoInk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DemoInk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -60,6 +64,8 @@
 				BB0000280000000000000001 /* DrawModel.swift */,
 				BB0000300000000000000001 /* Screenshot.swift */,
 				BB0000320000000000000001 /* PermissionsWindow.swift */,
+				BB0000340000000000000001 /* Settings.swift */,
+				BB0000360000000000000001 /* PreferencesWindow.swift */,
 				BB0000110000000000000001 /* Info.plist */,
 			);
 			path = DemoInk;
@@ -144,6 +150,8 @@
 				BB0000270000000000000001 /* DrawModel.swift in Sources */,
 				BB0000290000000000000001 /* Screenshot.swift in Sources */,
 				BB0000310000000000000001 /* PermissionsWindow.swift in Sources */,
+				BB0000330000000000000001 /* Settings.swift in Sources */,
+				BB0000350000000000000001 /* PreferencesWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -49,10 +49,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Toggle Draw Mode (⌘⇧D)", action: #selector(toggleOverlay), keyEquivalent: ""))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "Permissions… (⌘⇧P)", action: #selector(showPermissions), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
+    }
+
+    @objc private func showSettings() {
+        PreferencesWindowController.shared.show()
     }
 
     @objc private func showPermissions() {
@@ -66,6 +72,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // capturable for the Transparent theme. Only then close it.
             let view = overlayWindow.contentView as? OverlayView
             self.overlayWindow = nil
+            // Remember the last-used color/width/font as the new launch defaults.
+            view?.persistSessionDefaults()
             let closeIt: () -> Void = { overlayWindow.close() }
             if let view {
                 view.saveScreenshotIfNeeded(completion: closeIt)

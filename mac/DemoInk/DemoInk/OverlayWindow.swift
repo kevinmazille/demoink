@@ -52,9 +52,10 @@ final class OverlayView: NSView {
     private var lines: [DrawLine] = []
     private var isDrawing = false
 
-    // Current tool state (frozen into each DrawLine at stroke start).
-    private var colorIndex = DrawModel.defaultColorIndex
-    private var penWidth = DrawModel.defaultPenWidth
+    // Current tool state (frozen into each DrawLine at stroke start). Seeded from
+    // the user's saved launch defaults (Settings), falling back to DrawModel.
+    private var colorIndex = Settings.defaultColorIndex
+    private var penWidth = Settings.defaultPenWidth
     private var theme: Theme = .transparent
     private var boardStyle: BoardStyle = .none
     private var alpha = DrawModel.lineAlpha
@@ -418,8 +419,8 @@ final class OverlayView: NSView {
         line.colorIndex = colorIndex
         line.penWidth = penWidth
         line.alpha = alpha
-        line.fontSize = DrawModel.defaultFontSize
-        line.fontName = DrawModel.defaultFontName
+        line.fontSize = Settings.defaultFontSize
+        line.fontName = Settings.defaultFontName
         line.lineStart = cursorPoint ?? CGPoint(x: bounds.midX, y: bounds.midY)
         lines.append(line)
 
@@ -519,6 +520,25 @@ final class OverlayView: NSView {
         }
         refreshCursor()
         needsDisplay = true
+    }
+
+    // MARK: - Session defaults
+
+    /// Writes the tool state from this session back as the launch defaults, so
+    /// the next session (and the next launch) resumes where the user left off:
+    /// last color, last pen width, and — if any text was placed — the last font
+    /// size/name. Called on exit from draw mode.
+    ///
+    /// This intentionally diverges from the Windows build, where live changes
+    /// weren't persisted ("épaisseur non persistée d'une session à l'autre"); the
+    /// Mac version remembers them, which is what feels natural here.
+    func persistSessionDefaults() {
+        Settings.defaultColorIndex = colorIndex
+        Settings.defaultPenWidth = penWidth
+        if let lastText = lines.last(where: { $0.lineType == .text }) {
+            Settings.defaultFontSize = lastText.fontSize
+            Settings.defaultFontName = lastText.fontName
+        }
     }
 
     // MARK: - Auto-screenshot
