@@ -85,17 +85,16 @@ final class OverlayView: NSView {
                 name: .demoInkBackgroundChanged, object: nil
             )
         } else {
-            // Overlay closing: stop the caret timer and, if the cursor was
-            // hidden, restore it so the system arrow doesn't stay hidden.
+            // Overlay closing: stop the caret timer. The system cursor is managed
+            // per-region via cursorUpdate(_:) (see below), so macOS restores the
+            // arrow automatically once this window goes away — no manual unhide,
+            // and no cursor left invisible until the next mouse event.
             NotificationCenter.default.removeObserver(self, name: .demoInkPaletteChanged, object: nil)
             NotificationCenter.default.removeObserver(self, name: .demoInkBackgroundChanged, object: nil)
             caretTimer?.invalidate()
             caretTimer = nil
             isTextMode = false
-            if cursorPoint != nil {
-                NSCursor.unhide()
-                cursorPoint = nil
-            }
+            cursorPoint = nil
         }
     }
 
@@ -110,27 +109,41 @@ final class OverlayView: NSView {
     /// painted here every frame. nil while the pointer is outside the view.
     private var cursorPoint: CGPoint?
 
-    /// A tracking area spanning the whole view so we hide the system cursor and
-    /// follow the mouse (moved *and* dragged) across the entire overlay.
+    /// A fully-transparent 1×1 cursor. Setting it for the tracking region hides
+    /// the system arrow *only over this overlay* — so only the colour ball shows
+    /// — while letting AppKit restore the real cursor automatically the moment
+    /// the overlay closes. This avoids the app-wide NSCursor.hide()/unhide()
+    /// counter, whose unhide doesn't repaint until the next mouse event (the bug
+    /// where the pointer stayed invisible until you clicked).
+    private static let invisibleCursor: NSCursor = {
+        let image = NSImage(size: NSSize(width: 1, height: 1)) // empty = transparent
+        return NSCursor(image: image, hotSpot: .zero)
+    }()
+
+    /// A tracking area spanning the whole view so the transparent cursor applies
+    /// and we follow the mouse (moved *and* dragged) across the entire overlay.
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
         addTrackingArea(NSTrackingArea(
             rect: bounds,
-            options: [.activeAlways, .mouseMoved, .mouseEnteredAndExited, .inVisibleRect],
+            options: [.activeAlways, .mouseMoved, .mouseEnteredAndExited, .cursorUpdate, .inVisibleRect],
             owner: self,
             userInfo: nil
         ))
     }
 
+    /// Called by AppKit whenever the pointer needs a cursor over our region.
+    override func cursorUpdate(with event: NSEvent) {
+        OverlayView.invisibleCursor.set() // only the colour ball should be visible
+    }
+
     override func mouseEntered(with event: NSEvent) {
-        NSCursor.hide() // only the colour ball should be visible, no system arrow
         cursorPoint = convert(event.locationInWindow, from: nil)
         needsDisplay = true
     }
 
     override func mouseExited(with event: NSEvent) {
-        NSCursor.unhide()
         cursorPoint = nil
         needsDisplay = true
     }
