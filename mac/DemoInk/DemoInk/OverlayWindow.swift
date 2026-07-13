@@ -392,17 +392,20 @@ final class OverlayView: NSView {
             refreshCursor()
             return
         }
-        switch chars.lowercased() {
-        case "w": // erase all
+        // Letter shortcuts are user-rebindable (Settings › Shortcuts); dispatch
+        // by looking up the action bound to the pressed key rather than hard-
+        // coding letters. The defaults are A/W/Q/Z.
+        switch Settings.action(forKey: chars) {
+        case .eraseAll:
             lines.removeAll()
             needsDisplay = true
-        case "q": // cycle theme (Transparent → Light ↔ Dark)
+        case .cycleTheme:
             toggleTheme()
-        case "z": // cycle board frame (None → A → B → A)
+        case .cycleBoard:
             cycleBoard()
-        case "a": // enter text mode
+        case .text:
             enterTextMode()
-        default:
+        case nil:
             super.keyDown(with: event)
         }
     }

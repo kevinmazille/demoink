@@ -27,6 +27,12 @@ final class PreferencesWindowController: NSWindowController {
         textItem.image = NSImage(systemSymbolName: "textformat", accessibilityDescription: "Text")
         tabVC.addTabViewItem(textItem)
 
+        let shortcuts = ShortcutsPrefsViewController()
+        shortcuts.title = "Shortcuts"
+        let shortcutsItem = NSTabViewItem(viewController: shortcuts)
+        shortcutsItem.image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "Shortcuts")
+        tabVC.addTabViewItem(shortcutsItem)
+
         let window = NSWindow(contentViewController: tabVC)
         window.title = "DemoInk Settings"
         window.styleMask = [.titled, .closable, .miniaturizable]
@@ -221,4 +227,135 @@ private final class TextPrefsViewController: NSViewController {
         sizeField.doubleValue = clamped
         sizeStepper.doubleValue = clamped
     }
+}
+
+// MARK: - Shortcuts tab
+
+/// Rebind the in-overlay letter shortcuts (text / erase / cycle background /
+/// cycle board), mirroring the Windows Shortcuts tab. Each row shows the action
+/// and a button displaying its current key; clicking the button captures the
+/// next letter pressed. Only single letters are accepted, and a letter already
+/// bound to another action is rejected (anti-duplicate, like Windows).
+private final class ShortcutsPrefsViewController: NSViewController {
+    private var buttons: [Settings.ShortcutAction: KeyCaptureButton] = [:]
+    private let hint = NSTextField(labelWithString: "")
+
+    override func loadView() {
+        var rows: [(String, NSView)] = []
+        for action in Settings.ShortcutAction.allCases {
+            let button = KeyCaptureButton()
+            button.onCapture = { [weak self] key in
+                if let key { self?.tryBind(key, to: action) } else { self?.syncButtons() }
+            }
+            buttons[action] = button
+            rows.append(("\(action.title):", button))
+        }
+
+        let resetButton = NSButton(title: "Reset to defaults", target: self, action: #selector(resetAll))
+        resetButton.bezelStyle = .rounded
+        rows.append(("", resetButton))
+
+        hint.font = .systemFont(ofSize: 11)
+        hint.textColor = .secondaryLabelColor
+        hint.stringValue = "Click a key, then press a letter (A–Z). Arrows, digits, Esc and Delete are fixed."
+        rows.append(("", hint))
+
+        view = makeForm(rows: rows)
+        syncButtons()
+    }
+
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        syncButtons()
+    }
+
+    private func syncButtons() {
+        for (action, button) in buttons {
+            button.title = Settings.shortcutKey(action).uppercased()
+            button.isRecording = false
+        }
+    }
+
+    /// Binds `key` to `action` unless another action already uses it.
+    private func tryBind(_ key: String, to action: Settings.ShortcutAction) {
+        let lower = key.lowercased()
+        // Reject anything but a single a–z letter.
+        guard lower.count == 1, let c = lower.first, c.isLetter, c.isASCII else {
+            NSSound.beep()
+            syncButtons()
+            return
+        }
+        if let other = Settings.action(forKey: lower), other != action {
+            NSSound.beep()
+            hint.stringValue = "\"\(lower.uppercased())\" is already used for \(other.title)."
+            hint.textColor = .systemRed
+            syncButtons()
+            return
+        }
+        Settings.setShortcutKey(lower, for: action)
+        hint.stringValue = "Click a key, then press a letter (A–Z). Arrows, digits, Esc and Delete are fixed."
+        hint.textColor = .secondaryLabelColor
+        syncButtons()
+    }
+
+    @objc private func resetAll() {
+        Settings.resetShortcuts()
+        syncButtons()
+    }
+}
+
+/// A button that, once clicked, captures the next key pressed and reports it via
+/// `onCapture`. While armed it shows "…" and installs a local key-down monitor.
+private final class KeyCaptureButton: NSButton {
+    /// Reports the captured key, or nil if the capture was cancelled (Esc).
+    var onCapture: ((String?) -> Void)?
+    private var monitor: Any?
+
+    var isRecording = false {
+        didSet {
+            if isRecording {
+                title = "…"
+                arm()
+            } else {
+                disarm()
+            }
+        }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        bezelStyle = .rounded
+        setButtonType(.momentaryPushIn)
+        target = self
+        action = #selector(clicked)
+        widthAnchor.constraint(greaterThanOrEqualToConstant: 60).isActive = true
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func clicked() {
+        isRecording = true
+    }
+
+    private func arm() {
+        disarm()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            let key = event.charactersIgnoringModifiers ?? ""
+            self.isRecording = false
+            // Esc cancels without rebinding.
+            self.onCapture?(event.keyCode == 53 ? nil : key)
+            return nil  // swallow the event so it doesn't type into anything
+        }
+    }
+
+    private func disarm() {
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+            self.monitor = nil
+        }
+    }
+
+    deinit { disarm() }
 }
