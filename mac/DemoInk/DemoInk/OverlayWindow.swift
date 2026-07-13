@@ -74,9 +74,15 @@ final class OverlayView: NSView {
         super.viewDidMoveToWindow()
         if window != nil {
             window?.makeFirstResponder(self)
+            // Redraw live if the user edits a palette in Settings while drawing.
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(paletteChanged),
+                name: .demoInkPaletteChanged, object: nil
+            )
         } else {
             // Overlay closing: stop the caret timer and, if the cursor was
             // hidden, restore it so the system arrow doesn't stay hidden.
+            NotificationCenter.default.removeObserver(self, name: .demoInkPaletteChanged, object: nil)
             caretTimer?.invalidate()
             caretTimer = nil
             isTextMode = false
@@ -85,6 +91,11 @@ final class OverlayView: NSView {
                 cursorPoint = nil
             }
         }
+    }
+
+    @objc private func paletteChanged() {
+        needsDisplay = true
+        refreshCursor()
     }
 
     // MARK: - Cursor indicator

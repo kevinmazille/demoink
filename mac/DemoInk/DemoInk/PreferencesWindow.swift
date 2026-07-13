@@ -33,6 +33,12 @@ final class PreferencesWindowController: NSWindowController {
         screenshotItem.image = NSImage(systemSymbolName: "camera", accessibilityDescription: "Screenshot")
         tabVC.addTabViewItem(screenshotItem)
 
+        let colors = ColorsPrefsViewController()
+        colors.title = "Colors"
+        let colorsItem = NSTabViewItem(viewController: colors)
+        colorsItem.image = NSImage(systemSymbolName: "paintpalette", accessibilityDescription: "Colors")
+        tabVC.addTabViewItem(colorsItem)
+
         let shortcuts = ShortcutsPrefsViewController()
         shortcuts.title = "Shortcuts"
         let shortcutsItem = NSTabViewItem(viewController: shortcuts)
@@ -137,7 +143,7 @@ private final class DrawPrefsViewController: NSViewController {
         let size = NSSize(width: 24, height: 12)
         let img = NSImage(size: size)
         img.lockFocus()
-        DrawModel.lightPalette[index].withAlphaComponent(1).setFill()
+        Settings.palette(dark: false)[index].withAlphaComponent(1).setFill()
         NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
         img.unlockFocus()
         return img
@@ -233,6 +239,116 @@ private final class TextPrefsViewController: NSViewController {
         sizeField.doubleValue = clamped
         sizeStepper.doubleValue = clamped
     }
+}
+
+// MARK: - Colors tab
+
+/// The two 10-color palettes (Light/Dark), each swatch an `NSColorWell`. Editing
+/// a well writes it straight to `Settings`; since annotations store a palette
+/// *index* (not a frozen color), the change recolors existing strokes on the
+/// next redraw, matching the Windows data-driven `ApplyTheme`.
+private final class ColorsPrefsViewController: NSViewController {
+    private var lightWells: [NSColorWell] = []
+    private var darkWells: [NSColorWell] = []
+
+    override func loadView() {
+        let light = paletteRow(dark: false, wells: &lightWells)
+        let dark = paletteRow(dark: true, wells: &darkWells)
+
+        let lightLabel = sectionLabel("Light / Transparent theme")
+        let darkLabel = sectionLabel("Dark theme")
+
+        let lightReset = NSButton(title: "Reset", target: self, action: #selector(resetLight))
+        lightReset.bezelStyle = .rounded
+        let darkReset = NSButton(title: "Reset", target: self, action: #selector(resetDark))
+        darkReset.bezelStyle = .rounded
+
+        let lightHeader = NSStackView(views: [lightLabel, lightReset])
+        lightHeader.orientation = .horizontal
+        lightHeader.distribution = .equalSpacing
+        let darkHeader = NSStackView(views: [darkLabel, darkReset])
+        darkHeader.orientation = .horizontal
+        darkHeader.distribution = .equalSpacing
+
+        let stack = NSStackView(views: [lightHeader, light, darkHeader, dark])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 10
+        stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let container = NSView()
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor),
+            lightHeader.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -48),
+            darkHeader.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -48),
+        ])
+        view = container
+        syncWells()
+    }
+
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        syncWells()
+    }
+
+    private func sectionLabel(_ s: String) -> NSTextField {
+        let l = NSTextField(labelWithString: s)
+        l.font = .systemFont(ofSize: 12, weight: .semibold)
+        return l
+    }
+
+    private func paletteRow(dark: Bool, wells: inout [NSColorWell]) -> NSStackView {
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.spacing = 6
+        for i in 0..<10 {
+            let well = NSColorWell()
+            well.tag = (dark ? 100 : 0) + i
+            well.target = self
+            well.action = #selector(wellChanged(_:))
+            well.widthAnchor.constraint(equalToConstant: 28).isActive = true
+            well.heightAnchor.constraint(equalToConstant: 28).isActive = true
+            wells.append(well)
+            row.addArrangedSubview(well)
+        }
+        return row
+    }
+
+    private func syncWells() {
+        let lp = Settings.palette(dark: false)
+        let dp = Settings.palette(dark: true)
+        for (i, w) in lightWells.enumerated() { w.color = lp[i] }
+        for (i, w) in darkWells.enumerated() { w.color = dp[i] }
+    }
+
+    @objc private func wellChanged(_ sender: NSColorWell) {
+        let dark = sender.tag >= 100
+        let index = sender.tag % 100
+        Settings.setPaletteColor(sender.color, atIndex: index, dark: dark)
+        NotificationCenter.default.post(name: .demoInkPaletteChanged, object: nil)
+    }
+
+    @objc private func resetLight() {
+        Settings.resetPalette(dark: false)
+        syncWells()
+        NotificationCenter.default.post(name: .demoInkPaletteChanged, object: nil)
+    }
+
+    @objc private func resetDark() {
+        Settings.resetPalette(dark: true)
+        syncWells()
+        NotificationCenter.default.post(name: .demoInkPaletteChanged, object: nil)
+    }
+}
+
+extension Notification.Name {
+    /// Posted when a palette swatch changes, so a live overlay can redraw.
+    static let demoInkPaletteChanged = Notification.Name("demoInkPaletteChanged")
 }
 
 // MARK: - Screenshot tab

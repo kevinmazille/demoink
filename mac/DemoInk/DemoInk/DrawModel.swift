@@ -94,9 +94,10 @@ enum DrawModel {
     static let backgroundLight = NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 1)
     static let backgroundDark = NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 1)
 
-    /// Light palette, shared with the Transparent theme on Windows.
-    /// `DEFAULT_COLORS_LIGHT` in MainWindow.h.
-    static let lightPalette: [NSColor] = [
+    /// Built-in light palette, shared with the Transparent theme on Windows.
+    /// `DEFAULT_COLORS_LIGHT` in MainWindow.h. The live palette is read from
+    /// `Settings` (editable via the Colors tab), falling back to this.
+    static let defaultLightPalette: [NSColor] = [
         NSColor(srgbRed: 255 / 255, green: 255 / 255, blue:   0 / 255, alpha: 1),
         NSColor(srgbRed: 255 / 255, green:   0 / 255, blue:   0 / 255, alpha: 1),
         NSColor(srgbRed:   0 / 255, green:  80 / 255, blue: 220 / 255, alpha: 1),
@@ -109,8 +110,8 @@ enum DrawModel {
         NSColor(srgbRed: 200 / 255, green:   0 / 255, blue: 200 / 255, alpha: 1),
     ]
 
-    /// Dark palette, tuned for a black background. `DEFAULT_COLORS_DARK`.
-    static let darkPalette: [NSColor] = [
+    /// Built-in dark palette, tuned for a black background. `DEFAULT_COLORS_DARK`.
+    static let defaultDarkPalette: [NSColor] = [
         NSColor(srgbRed: 255 / 255, green: 255 / 255, blue:   0 / 255, alpha: 1),
         NSColor(srgbRed: 255 / 255, green: 140 / 255, blue:   0 / 255, alpha: 1),
         NSColor(srgbRed: 255 / 255, green:  90 / 255, blue:  90 / 255, alpha: 1),
@@ -123,8 +124,14 @@ enum DrawModel {
         NSColor(srgbRed: 120 / 255, green: 255 / 255, blue: 120 / 255, alpha: 1),
     ]
 
+    /// The live palette: user-edited colors from `Settings` when present, else
+    /// the built-in default for the theme.
     static func palette(for theme: Theme) -> [NSColor] {
-        theme.isDark ? darkPalette : lightPalette
+        Settings.palette(dark: theme.isDark)
+    }
+
+    static var defaultPalette: (light: [NSColor], dark: [NSColor]) {
+        (defaultLightPalette, defaultDarkPalette)
     }
 
     /// Alpha the theme draws ink at: opaque on Dark, semi-transparent otherwise.

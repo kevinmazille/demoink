@@ -1,5 +1,4 @@
-import Foundation
-import CoreGraphics
+import AppKit
 
 /// Central typed accessor over `UserDefaults` for the user-configurable defaults,
 /// the macOS idiom replacing the Windows `.ini`. Each property falls back to the
@@ -46,6 +45,38 @@ enum Settings {
             return min(max(s, DrawModel.minFontSize), DrawModel.maxFontSize)
         }
         set { d.set(Double(newValue), forKey: Key.textFontSize) }
+    }
+
+    // MARK: - Color palettes
+
+    /// The 10-color palette for the light or dark theme: user-edited colors when
+    /// present in UserDefaults, else the built-in `DrawModel` default. Stored as
+    /// an array of "#RRGGBB" hex strings; a malformed or wrong-length array is
+    /// ignored so a bad write can't corrupt the palette.
+    static func palette(dark: Bool) -> [NSColor] {
+        let fallback = dark ? DrawModel.defaultDarkPalette : DrawModel.defaultLightPalette
+        guard let hexes = d.stringArray(forKey: paletteKey(dark: dark)), hexes.count == 10 else {
+            return fallback
+        }
+        return hexes.enumerated().map { i, hex in NSColor(hex: hex) ?? fallback[i] }
+    }
+
+    /// Sets a single swatch (0...9) in the light or dark palette, preserving the
+    /// others. Writes the whole array back as hex.
+    static func setPaletteColor(_ color: NSColor, atIndex index: Int, dark: Bool) {
+        guard (0..<10).contains(index) else { return }
+        var current = palette(dark: dark)
+        current[index] = color
+        d.set(current.map { $0.hexString }, forKey: paletteKey(dark: dark))
+    }
+
+    /// Restores one theme's palette to the built-in default.
+    static func resetPalette(dark: Bool) {
+        d.removeObject(forKey: paletteKey(dark: dark))
+    }
+
+    private static func paletteKey(dark: Bool) -> String {
+        dark ? "Colors.dark" : "Colors.light"
     }
 
     // MARK: - Shortcuts
@@ -107,5 +138,30 @@ enum Settings {
         static let drawPenWidth = "Draw.penWidth"
         static let textFontName = "Text.fontName"
         static let textFontSize = "Text.fontSize"
+    }
+}
+
+extension NSColor {
+    /// Parses "#RRGGBB" (or "RRGGBB") into an sRGB color, nil if malformed.
+    convenience init?(hex: String) {
+        var s = hex.trimmingCharacters(in: .whitespaces)
+        if s.hasPrefix("#") { s.removeFirst() }
+        guard s.count == 6, let value = UInt32(s, radix: 16) else { return nil }
+        self.init(
+            srgbRed: CGFloat((value >> 16) & 0xFF) / 255,
+            green: CGFloat((value >> 8) & 0xFF) / 255,
+            blue: CGFloat(value & 0xFF) / 255,
+            alpha: 1
+        )
+    }
+
+    /// "#RRGGBB" from this color's sRGB components (alpha dropped — palettes are
+    /// opaque; the theme applies alpha at draw time).
+    var hexString: String {
+        let c = usingColorSpace(.sRGB) ?? self
+        let r = Int((c.redComponent * 255).rounded())
+        let g = Int((c.greenComponent * 255).rounded())
+        let b = Int((c.blueComponent * 255).rounded())
+        return String(format: "#%02X%02X%02X", r, g, b)
     }
 }
