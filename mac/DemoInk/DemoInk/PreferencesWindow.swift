@@ -27,6 +27,12 @@ final class PreferencesWindowController: NSWindowController {
         textItem.image = NSImage(systemSymbolName: "textformat", accessibilityDescription: "Text")
         tabVC.addTabViewItem(textItem)
 
+        let screenshot = ScreenshotPrefsViewController()
+        screenshot.title = "Screenshot"
+        let screenshotItem = NSTabViewItem(viewController: screenshot)
+        screenshotItem.image = NSImage(systemSymbolName: "camera", accessibilityDescription: "Screenshot")
+        tabVC.addTabViewItem(screenshotItem)
+
         let shortcuts = ShortcutsPrefsViewController()
         shortcuts.title = "Shortcuts"
         let shortcutsItem = NSTabViewItem(viewController: shortcuts)
@@ -226,6 +232,84 @@ private final class TextPrefsViewController: NSViewController {
         Settings.defaultFontSize = CGFloat(clamped)
         sizeField.doubleValue = clamped
         sizeStepper.doubleValue = clamped
+    }
+}
+
+// MARK: - Screenshot tab
+
+/// Auto-capture on/off, optional Meet detection, and the root folder the
+/// two-tree layout is written under. Mirrors the Windows Screenshot tab.
+private final class ScreenshotPrefsViewController: NSViewController {
+    private let enabledCheck = NSButton(checkboxWithTitle: "Auto-save a screenshot on exit", target: nil, action: nil)
+    private let meetCheck = NSButton(checkboxWithTitle: "Detect the client name from a Google Meet tab", target: nil, action: nil)
+    private let folderField = NSTextField()
+
+    override func loadView() {
+        enabledCheck.target = self
+        enabledCheck.action = #selector(enabledChanged)
+        meetCheck.target = self
+        meetCheck.action = #selector(meetChanged)
+
+        folderField.isEditable = false
+        folderField.isSelectable = true
+        folderField.lineBreakMode = .byTruncatingMiddle
+        folderField.widthAnchor.constraint(equalToConstant: 260).isActive = true
+
+        let browse = NSButton(title: "Browse…", target: self, action: #selector(browseFolder))
+        browse.bezelStyle = .rounded
+        let reset = NSButton(title: "Default", target: self, action: #selector(resetFolder))
+        reset.bezelStyle = .rounded
+
+        let folderRow = NSStackView(views: [folderField, browse, reset])
+        folderRow.orientation = .horizontal
+        folderRow.spacing = 6
+
+        view = makeForm(rows: [
+            ("", enabledCheck),
+            ("", meetCheck),
+            ("Save folder:", folderRow),
+        ])
+        syncControls()
+    }
+
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        syncControls()
+    }
+
+    private func syncControls() {
+        enabledCheck.state = Screenshot.isEnabled ? .on : .off
+        meetCheck.state = Screenshot.isMeetDetectEnabled ? .on : .off
+        // Meet detection only matters when capture is on.
+        meetCheck.isEnabled = Screenshot.isEnabled
+        folderField.stringValue = Screenshot.rootFolder?.path ?? ""
+    }
+
+    @objc private func enabledChanged() {
+        Screenshot.isEnabled = (enabledCheck.state == .on)
+        syncControls()
+    }
+
+    @objc private func meetChanged() {
+        Screenshot.isMeetDetectEnabled = (meetCheck.state == .on)
+    }
+
+    @objc private func browseFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Choose"
+        panel.directoryURL = Screenshot.rootFolder
+        if panel.runModal() == .OK, let url = panel.url {
+            Screenshot.configuredFolderPath = url.path
+            syncControls()
+        }
+    }
+
+    @objc private func resetFolder() {
+        Screenshot.configuredFolderPath = nil
+        syncControls()
     }
 }
 

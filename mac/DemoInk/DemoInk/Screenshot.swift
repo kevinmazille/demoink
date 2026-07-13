@@ -16,21 +16,43 @@ enum Screenshot {
 
     /// Auto-capture is opt-out, like the Windows `Screenshot/enabled` default 1.
     static var isEnabled: Bool {
-        let d = UserDefaults.standard
-        return d.object(forKey: "Screenshot.enabled") == nil ? true : d.bool(forKey: "Screenshot.enabled")
+        get {
+            let d = UserDefaults.standard
+            return d.object(forKey: "Screenshot.enabled") == nil ? true : d.bool(forKey: "Screenshot.enabled")
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "Screenshot.enabled") }
     }
 
     /// Meet detection is opt-out, like `Screenshot/meetdetect` default 1.
     static var isMeetDetectEnabled: Bool {
-        let d = UserDefaults.standard
-        return d.object(forKey: "Screenshot.meetdetect") == nil ? true : d.bool(forKey: "Screenshot.meetdetect")
+        get {
+            let d = UserDefaults.standard
+            return d.object(forKey: "Screenshot.meetdetect") == nil ? true : d.bool(forKey: "Screenshot.meetdetect")
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "Screenshot.meetdetect") }
+    }
+
+    /// The user-configured root path, or nil when left at the default. Empty
+    /// strings are treated as "unset" so clearing the field falls back cleanly.
+    static var configuredFolderPath: String? {
+        get {
+            let s = UserDefaults.standard.string(forKey: "Screenshot.folder")
+            return (s?.isEmpty ?? true) ? nil : s
+        }
+        set {
+            let d = UserDefaults.standard
+            if let newValue, !newValue.isEmpty {
+                d.set(newValue, forKey: "Screenshot.folder")
+            } else {
+                d.removeObject(forKey: "Screenshot.folder")
+            }
+        }
     }
 
     /// Configured root, else `~/Pictures/DemoInk` (mirrors the Windows default of
     /// `%USERPROFILE%\Pictures\DemoInk`).
     static var rootFolder: URL? {
-        let configured = UserDefaults.standard.string(forKey: "Screenshot.folder")
-        if let configured, !configured.isEmpty {
+        if let configured = configuredFolderPath {
             return URL(fileURLWithPath: configured, isDirectory: true)
         }
         guard let pics = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask).first else {
