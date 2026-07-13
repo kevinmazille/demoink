@@ -532,6 +532,19 @@ l'image fournie pour ce style si elle existe.
 - Onglet Background : 2 lignes image (Light board / Dark board), chacune avec
   Browse (`GetOpenFileName`) + bouton X (clear). Champ vide = cadre vectoriel.
 
+## Bugs connus — Windows (à corriger)
+- **Choix de couleur inopérant au démarrage** : juste après l'ouverture du
+  mode draw, on ne peut pas changer de couleur (chiffres `0-9` / flèches
+  `←→`) tant qu'on n'a pas **cliqué quelque part** dans la fenêtre. Une fois
+  un premier clic donné, tout fonctionne. Symptôme typique d'un problème de
+  **focus clavier** : la fenêtre overlay n'a pas le focus (ou les
+  accélérateurs ne sont pas encore actifs) tant qu'un clic ne l'a pas
+  activée. Piste : forcer `SetForegroundWindow` / `SetFocus` (et s'assurer
+  que la table d'accélérateurs dynamique construite au `WM_CREATE` est bien
+  prise en compte par la boucle de messages) à l'ouverture du mode draw.
+  **macOS non concerné** (l'overlay prend le focus clavier via
+  `makeKeyAndOrderFront` + `NSApp.activate`).
+
 ## Idées futures
 - **Auto-screenshot à l'Esc** : quand on sort du mode draw, capturer
   l'écran annoté et le sauver dans un dossier dédié. Implémentation
