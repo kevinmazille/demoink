@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlayWindow: OverlayWindow?
     private var hotkeyManager: HotkeyManager?
     private var permissionsHotkey: HotkeyManager?
+    private var autostartItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         SingleInstance.ensureOnlyInstance(bundleIdentifier: Self.bundleIdentifier)
@@ -53,8 +54,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "Permissions… (⌘⇧P)", action: #selector(showPermissions), keyEquivalent: ""))
         menu.addItem(.separator())
+        autostartItem = NSMenuItem(title: "Start at Login", action: #selector(toggleAutostart), keyEquivalent: "")
+        menu.addItem(autostartItem)
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.delegate = self
         statusItem.menu = menu
+    }
+
+    @objc private func toggleAutostart() {
+        // Toggle relative to the live system state, then resync the checkmark.
+        Autostart.setEnabled(!Autostart.isEnabled)
+        autostartItem.state = Autostart.isEnabled ? .on : .off
     }
 
     @objc private func showSettings() {
@@ -99,5 +110,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let mouse = NSEvent.mouseLocation
         return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
             ?? NSScreen.main
+    }
+}
+
+extension AppDelegate: NSMenuDelegate {
+    /// Resync the autostart checkmark whenever the menu opens — the user may have
+    /// toggled the login item in System Settings behind our back.
+    func menuWillOpen(_ menu: NSMenu) {
+        autostartItem?.state = Autostart.isEnabled ? .on : .off
     }
 }
