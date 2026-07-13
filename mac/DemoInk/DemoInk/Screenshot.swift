@@ -114,21 +114,25 @@ enum Screenshot {
     /// Screen Recording isn't granted yet or capture fails; the caller then falls
     /// back to saving the annotations over an empty background.
     ///
+    /// This never prompts for permission. Requesting the grant is the sole job of
+    /// the Permissions panel (⌘⇧P). We gate on `CGPreflightScreenCaptureAccess()`,
+    /// which is silent (unlike `SCShareableContent`, which itself pops the TCC
+    /// prompt when unauthorized); if it reports no access we bail out and let the
+    /// caller save the annotations over an empty background rather than show a
+    /// prompt on every draw exit. This does mean a freshly rebuilt ad-hoc binary
+    /// (new hash → TCC sees a different app) captures nothing until re-granted +
+    /// relaunched via ⌘⇧P — acceptable, and far better than a prompt every time.
+    ///
     /// `screen` identifies which physical display to grab, so a capture triggered
     /// on a secondary monitor doesn't silently record the main one.
     static func captureDesktop(screen: NSScreen, excludingWindow windowNumber: Int) async -> CGImage? {
         guard let displayID = screen.displayID else { return nil }
 
-        // Make sure Screen Recording is granted. Preflight is silent; if not yet
-        // authorized, request() synchronously shows the TCC prompt and adds
-        // DemoInk to System Settings › Privacy › Screen Recording. The grant
-        // only takes full effect after the next launch, so this first call may
-        // still come back unauthorized — we log it so the failure isn't silent.
-        if !CGPreflightScreenCaptureAccess() {
-            let granted = CGRequestScreenCaptureAccess()
-            NSLog("DemoInk: Screen Recording not yet granted — prompted (granted=\(granted)). "
-                + "If just enabled, relaunch DemoInk for capture to work.")
-            if !granted { return nil }
+        // Silent gate: preflight never prompts. Bail before touching
+        // SCShareableContent, which would pop the TCC dialog when unauthorized.
+        guard CGPreflightScreenCaptureAccess() else {
+            NSLog("DemoInk: Screen Recording not granted — skipping desktop capture. Grant via ⌘⇧P and relaunch.")
+            return nil
         }
 
         do {
