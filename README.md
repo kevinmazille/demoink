@@ -11,9 +11,11 @@ customizable hotkey.
   </a>
 </p>
 
-## ⬇️ Download (Windows)
+## ⬇️ Download
 
-Grab the latest build from the **[Releases page](https://github.com/kevinmazille/demoink/releases/latest)**:
+Grab the latest build from the **[Releases page](https://github.com/kevinmazille/demoink/releases/latest)** — available for both Windows and macOS.
+
+**Windows**
 
 | | File | Notes |
 |---|---|---|
@@ -24,6 +26,17 @@ Grab the latest build from the **[Releases page](https://github.com/kevinmazille
 > show *"Windows protected your PC"*. Click **More info → Run anyway**, or
 > right-click the file → **Properties → Unblock → OK**. This is expected for
 > small, unsigned open-source tools.
+
+**macOS** (13 Ventura or later)
+
+| | File | Notes |
+|---|---|---|
+| **Disk image** | `DemoInk-1.0.0.dmg` | Open it, then drag **DemoInk** into **Applications** |
+
+> **⚠️ "Unidentified developer" warning?** The macOS build isn't signed, so on
+> first launch **right-click the app → Open** to get past Gatekeeper (only needed
+> once). When prompted, grant **Screen Recording** — used for the auto-screenshot;
+> the in-app **Permissions** panel (⌘⇧P) walks you through it.
 
 ## What it does
 
@@ -38,7 +51,7 @@ Grab the latest build from the **[Releases page](https://github.com/kevinmazille
   client when detected)
 - **Fully configurable**: tabbed Options dialog (General, Draw, Text, Colors,
   Background, Screenshot, Shortcuts) with rebindable keys
-- **Tray app**: single instance, optional start with Windows
+- **Tray / menu-bar app**: single instance, optional start at login
 
 ## Default keys (draw mode)
 
@@ -54,16 +67,20 @@ Every letter shortcut is rebindable in **Options → Shortcuts**.
 
 ## macOS
 
-A native **Swift/AppKit** port is in progress under [`mac/`](mac/): freehand
-draw, shapes, live modifier-key switching, light/dark/board themes, and board
-frames are working. It is **not yet released as a binary** — build it with
-Xcode. See [`docs/mac-port.md`](docs/mac-port.md) for the design and status.
+DemoInk has a full native **Swift/AppKit** port under [`mac/`](mac/) — every
+feature above works on macOS, plus start-at-login from the menu bar. Toggle draw
+mode with **⌘⇧D** and open the **Permissions** panel with **⌘⇧P**. Download the
+`.dmg` from the [Releases page](https://github.com/kevinmazille/demoink/releases/latest);
+see [`docs/mac-port.md`](docs/mac-port.md) for the design and status.
+
+To build it yourself, open `mac/DemoInk/DemoInk.xcodeproj` in Xcode, or package a
+release `.dmg` with `mac/package.sh` (requires Xcode command-line tools).
 
 ## Building from source (Windows)
 
-Prebuilt binaries are on the
+Prebuilt binaries for both platforms are on the
 [Releases page](https://github.com/kevinmazille/demoink/releases/latest) — you
-only need to build if you're developing.
+only need to build if you're developing. (For macOS, see the section above.)
 
 ```bash
 git submodule update --init --recursive   # fetch sktoolslib
