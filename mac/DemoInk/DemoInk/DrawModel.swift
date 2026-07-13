@@ -90,9 +90,17 @@ enum DrawModel {
         return NSFont.systemFont(ofSize: size)
     }
 
-    /// Solid background fills for the Light / Dark themes (Win32 DEFAULT_BG_*).
-    static let backgroundLight = NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 1)
-    static let backgroundDark = NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 1)
+    /// Built-in solid background fills for the Light / Dark themes (Win32
+    /// DEFAULT_BG_*). The live fills are read from `Settings` (editable via the
+    /// Background tab), falling back to these.
+    static let defaultBackgroundLight = NSColor(srgbRed: 1, green: 1, blue: 1, alpha: 1)
+    static let defaultBackgroundDark = NSColor(srgbRed: 0, green: 0, blue: 0, alpha: 1)
+
+    /// The live solid fill for a theme: the user-edited color when set, else the
+    /// built-in default.
+    static func background(for theme: Theme) -> NSColor {
+        Settings.backgroundColor(dark: theme.isDark)
+    }
 
     /// Built-in light palette, shared with the Transparent theme on Windows.
     /// `DEFAULT_COLORS_LIGHT` in MainWindow.h. The live palette is read from

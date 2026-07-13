@@ -74,15 +74,21 @@ final class OverlayView: NSView {
         super.viewDidMoveToWindow()
         if window != nil {
             window?.makeFirstResponder(self)
-            // Redraw live if the user edits a palette in Settings while drawing.
+            // Redraw live if the user edits a palette or the background/board in
+            // Settings while drawing.
             NotificationCenter.default.addObserver(
                 self, selector: #selector(paletteChanged),
                 name: .demoInkPaletteChanged, object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(paletteChanged),
+                name: .demoInkBackgroundChanged, object: nil
             )
         } else {
             // Overlay closing: stop the caret timer and, if the cursor was
             // hidden, restore it so the system arrow doesn't stay hidden.
             NotificationCenter.default.removeObserver(self, name: .demoInkPaletteChanged, object: nil)
+            NotificationCenter.default.removeObserver(self, name: .demoInkBackgroundChanged, object: nil)
             caretTimer?.invalidate()
             caretTimer = nil
             isTextMode = false
@@ -174,6 +180,14 @@ final class OverlayView: NSView {
         let cx = bounds.width, cy = bounds.height
         guard cx > 0, cy > 0 else { return }
 
+        // A user image replaces the vector frame for this board (A=light,
+        // B=dark), mirroring the Windows `[Background] imagelight`/`imagedark`.
+        // Empty setting → fall through to the vector art below.
+        if let path = Settings.boardImagePath(dark: boardStyle == .frameB),
+           drawBoardImage(atPath: path) {
+            return
+        }
+
         let sx = cx / 1920.0, sy = cy / 1080.0
         let s = sy // uniform scale for stroke widths / tick sizes
         func X(_ v: CGFloat) -> CGFloat { v * sx }
@@ -243,6 +257,28 @@ final class OverlayView: NSView {
             NSColor(srgbRed: 0xD9 / 255, green: 0x77 / 255, blue: 0x57 / 255, alpha: 0xD9 / 255).setFill()
             NSRect(x: X(40), y: Y(1028), width: X(1840), height: Y(12)).fill()
         }
+    }
+
+    /// Draws the user-supplied board image to fill the overlay (aspect-fill,
+    /// centre-cropped so it always covers edge-to-edge). Returns false when the
+    /// file can't be loaded so the caller falls back to the vector frame.
+    private func drawBoardImage(atPath path: String) -> Bool {
+        guard let image = NSImage(contentsOfFile: path) else { return false }
+        let imgSize = image.size
+        guard imgSize.width > 0, imgSize.height > 0 else { return false }
+
+        // Aspect-fill: scale so the image covers `bounds`, centred, cropping the
+        // overflow along the longer axis.
+        let scale = max(bounds.width / imgSize.width, bounds.height / imgSize.height)
+        let drawn = NSSize(width: imgSize.width * scale, height: imgSize.height * scale)
+        let dest = NSRect(x: (bounds.width - drawn.width) / 2,
+                          y: (bounds.height - drawn.height) / 2,
+                          width: drawn.width, height: drawn.height)
+        // respectFlipped: this view is flipped (top-left origin); without it the
+        // image would render upside-down.
+        image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1.0,
+                   respectFlipped: true, hints: nil)
+        return true
     }
 
     // MARK: - Mouse
@@ -631,11 +667,8 @@ final class OverlayView: NSView {
         switch theme {
         case .transparent:
             break
-        case .light:
-            DrawModel.backgroundLight.setFill()
-            bounds.fill()
-        case .dark:
-            DrawModel.backgroundDark.setFill()
+        case .light, .dark:
+            DrawModel.background(for: theme).setFill()
             bounds.fill()
         }
 

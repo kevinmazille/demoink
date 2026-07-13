@@ -39,6 +39,12 @@ final class PreferencesWindowController: NSWindowController {
         colorsItem.image = NSImage(systemSymbolName: "paintpalette", accessibilityDescription: "Colors")
         tabVC.addTabViewItem(colorsItem)
 
+        let background = BackgroundPrefsViewController()
+        background.title = "Background"
+        let backgroundItem = NSTabViewItem(viewController: background)
+        backgroundItem.image = NSImage(systemSymbolName: "rectangle.fill", accessibilityDescription: "Background")
+        tabVC.addTabViewItem(backgroundItem)
+
         let shortcuts = ShortcutsPrefsViewController()
         shortcuts.title = "Shortcuts"
         let shortcutsItem = NSTabViewItem(viewController: shortcuts)
@@ -349,6 +355,137 @@ private final class ColorsPrefsViewController: NSViewController {
 extension Notification.Name {
     /// Posted when a palette swatch changes, so a live overlay can redraw.
     static let demoInkPaletteChanged = Notification.Name("demoInkPaletteChanged")
+    /// Posted when a background color or board image changes, so a live overlay
+    /// can redraw.
+    static let demoInkBackgroundChanged = Notification.Name("demoInkBackgroundChanged")
+}
+
+// MARK: - Background tab
+
+/// The solid background fills (Light/Dark) and the optional board images that
+/// replace the vector frames A/B. Mirrors the Windows Background tab: two color
+/// wells with per-theme Reset, plus two image rows with Browse/Clear. A cleared
+/// image field falls back to the built-in vector frame.
+private final class BackgroundPrefsViewController: NSViewController {
+    private let lightWell = NSColorWell()
+    private let darkWell = NSColorWell()
+    private let lightImageField = NSTextField()
+    private let darkImageField = NSTextField()
+
+    override func loadView() {
+        lightWell.target = self
+        lightWell.action = #selector(lightColorChanged)
+        lightWell.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        lightWell.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        darkWell.target = self
+        darkWell.action = #selector(darkColorChanged)
+        darkWell.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        darkWell.heightAnchor.constraint(equalToConstant: 24).isActive = true
+
+        let lightColorReset = NSButton(title: "Reset", target: self, action: #selector(resetLightColor))
+        lightColorReset.bezelStyle = .rounded
+        let darkColorReset = NSButton(title: "Reset", target: self, action: #selector(resetDarkColor))
+        darkColorReset.bezelStyle = .rounded
+
+        let lightColorRow = NSStackView(views: [lightWell, lightColorReset])
+        lightColorRow.orientation = .horizontal
+        lightColorRow.spacing = 8
+        let darkColorRow = NSStackView(views: [darkWell, darkColorReset])
+        darkColorRow.orientation = .horizontal
+        darkColorRow.spacing = 8
+
+        view = makeForm(rows: [
+            ("Light background:", lightColorRow),
+            ("Dark background:", darkColorRow),
+            ("Light board image:", imageRow(field: lightImageField, dark: false)),
+            ("Dark board image:", imageRow(field: darkImageField, dark: true)),
+        ])
+        syncControls()
+    }
+
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        syncControls()
+    }
+
+    private func imageRow(field: NSTextField, dark: Bool) -> NSView {
+        field.isEditable = false
+        field.isSelectable = true
+        field.lineBreakMode = .byTruncatingMiddle
+        field.placeholderString = "Vector frame (default)"
+        field.widthAnchor.constraint(equalToConstant: 220).isActive = true
+
+        let browse = NSButton(title: "Browse…", target: self,
+                              action: dark ? #selector(browseDarkImage) : #selector(browseLightImage))
+        browse.bezelStyle = .rounded
+        let clear = NSButton(title: "Clear", target: self,
+                             action: dark ? #selector(clearDarkImage) : #selector(clearLightImage))
+        clear.bezelStyle = .rounded
+
+        let row = NSStackView(views: [field, browse, clear])
+        row.orientation = .horizontal
+        row.spacing = 6
+        return row
+    }
+
+    private func syncControls() {
+        lightWell.color = Settings.backgroundColor(dark: false)
+        darkWell.color = Settings.backgroundColor(dark: true)
+        lightImageField.stringValue = Settings.boardImagePath(dark: false) ?? ""
+        darkImageField.stringValue = Settings.boardImagePath(dark: true) ?? ""
+    }
+
+    // MARK: Colors
+
+    @objc private func lightColorChanged() {
+        Settings.setBackgroundColor(lightWell.color, dark: false)
+        NotificationCenter.default.post(name: .demoInkBackgroundChanged, object: nil)
+    }
+
+    @objc private func darkColorChanged() {
+        Settings.setBackgroundColor(darkWell.color, dark: true)
+        NotificationCenter.default.post(name: .demoInkBackgroundChanged, object: nil)
+    }
+
+    @objc private func resetLightColor() {
+        Settings.resetBackgroundColor(dark: false)
+        syncControls()
+        NotificationCenter.default.post(name: .demoInkBackgroundChanged, object: nil)
+    }
+
+    @objc private func resetDarkColor() {
+        Settings.resetBackgroundColor(dark: true)
+        syncControls()
+        NotificationCenter.default.post(name: .demoInkBackgroundChanged, object: nil)
+    }
+
+    // MARK: Board images
+
+    @objc private func browseLightImage() { browseImage(dark: false) }
+    @objc private func browseDarkImage() { browseImage(dark: true) }
+
+    private func browseImage(dark: Bool) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.png, .jpeg, .tiff, .heic, .image]
+        panel.prompt = "Choose"
+        if panel.runModal() == .OK, let url = panel.url {
+            Settings.setBoardImagePath(url.path, dark: dark)
+            syncControls()
+            NotificationCenter.default.post(name: .demoInkBackgroundChanged, object: nil)
+        }
+    }
+
+    @objc private func clearLightImage() { clearImage(dark: false) }
+    @objc private func clearDarkImage() { clearImage(dark: true) }
+
+    private func clearImage(dark: Bool) {
+        Settings.setBoardImagePath(nil, dark: dark)
+        syncControls()
+        NotificationCenter.default.post(name: .demoInkBackgroundChanged, object: nil)
+    }
 }
 
 // MARK: - Screenshot tab

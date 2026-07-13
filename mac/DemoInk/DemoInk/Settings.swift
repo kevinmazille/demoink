@@ -79,6 +79,53 @@ enum Settings {
         dark ? "Colors.dark" : "Colors.light"
     }
 
+    // MARK: - Background (solid fill + board images)
+
+    /// The solid background fill for the Light or Dark theme, user-edited when
+    /// present else the built-in `DrawModel` default (white / black). Stored as a
+    /// "#RRGGBB" hex string, mirroring the Windows `[Background] light`/`dark`.
+    static func backgroundColor(dark: Bool) -> NSColor {
+        let fallback = dark ? DrawModel.defaultBackgroundDark : DrawModel.defaultBackgroundLight
+        guard let hex = d.string(forKey: backgroundKey(dark: dark)), let c = NSColor(hex: hex) else {
+            return fallback
+        }
+        return c
+    }
+
+    static func setBackgroundColor(_ color: NSColor, dark: Bool) {
+        d.set(color.hexString, forKey: backgroundKey(dark: dark))
+    }
+
+    static func resetBackgroundColor(dark: Bool) {
+        d.removeObject(forKey: backgroundKey(dark: dark))
+    }
+
+    private static func backgroundKey(dark: Bool) -> String {
+        dark ? "Background.dark" : "Background.light"
+    }
+
+    /// The board image that *replaces* the vector frame for board A (light) or B
+    /// (dark), or nil when left empty (draw the vector frame). Mirrors the Windows
+    /// `[Background] imagelight` (A) / `imagedark` (B). Empty strings are treated
+    /// as "unset" so clearing the field falls back to the vector frame.
+    static func boardImagePath(dark: Bool) -> String? {
+        let s = d.string(forKey: boardImageKey(dark: dark))
+        return (s?.isEmpty ?? true) ? nil : s
+    }
+
+    static func setBoardImagePath(_ path: String?, dark: Bool) {
+        let key = boardImageKey(dark: dark)
+        if let path, !path.isEmpty {
+            d.set(path, forKey: key)
+        } else {
+            d.removeObject(forKey: key)
+        }
+    }
+
+    private static func boardImageKey(dark: Bool) -> String {
+        dark ? "Background.imagedark" : "Background.imagelight"
+    }
+
     // MARK: - Shortcuts
 
     /// The in-overlay letter shortcuts, rebindable like the Windows Shortcuts tab.
