@@ -138,10 +138,6 @@ enum DrawModel {
         Settings.palette(dark: theme.isDark)
     }
 
-    static var defaultPalette: (light: [NSColor], dark: [NSColor]) {
-        (defaultLightPalette, defaultDarkPalette)
-    }
-
     /// Alpha the theme draws ink at: opaque on Dark, semi-transparent otherwise.
     static func alpha(for theme: Theme) -> Int {
         theme.isDark ? opaqueAlpha : lineAlpha

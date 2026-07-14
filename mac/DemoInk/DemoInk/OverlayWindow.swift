@@ -74,6 +74,13 @@ final class OverlayView: NSView {
         super.viewDidMoveToWindow()
         if window != nil {
             window?.makeFirstResponder(self)
+            // Deliver fine-grained mouse movement instead of the coalesced
+            // (merged) events macOS sends by default. Coalescing drops
+            // intermediate points during a fast stroke, leaving the freehand
+            // points sparse — and the cardinal spline then overshoots at the
+            // resulting sharp angles, which shows up as a visible "jump" in the
+            // line. Dense points keep the curve smooth.
+            NSEvent.isMouseCoalescingEnabled = false
             // Redraw live if the user edits a palette or the background/board in
             // Settings while drawing.
             NotificationCenter.default.addObserver(
@@ -91,6 +98,7 @@ final class OverlayView: NSView {
             // and no cursor left invisible until the next mouse event.
             NotificationCenter.default.removeObserver(self, name: .demoInkPaletteChanged, object: nil)
             NotificationCenter.default.removeObserver(self, name: .demoInkBackgroundChanged, object: nil)
+            NSEvent.isMouseCoalescingEnabled = true // restore the app-wide default
             caretTimer?.invalidate()
             caretTimer = nil
             isTextMode = false
@@ -173,14 +181,13 @@ final class OverlayView: NSView {
         let dia = max(min(penWidth, 24), 6) // clamp so the disc stays usable
         let discRect = NSRect(x: p.x - dia / 2, y: p.y - dia / 2, width: dia, height: dia)
 
-        let color = DrawModel.color(atIndex: colorIndex, alpha: alpha, theme: theme)
-        color.setFill()
-        NSBezierPath(ovalIn: discRect).fill()
+        let disc = NSBezierPath(ovalIn: discRect)
+        DrawModel.color(atIndex: colorIndex, alpha: alpha, theme: theme).setFill()
+        disc.fill()
         // A hairline outline keeps a light-on-light disc visible.
         NSColor(white: 0, alpha: 0.35).setStroke()
-        let ring = NSBezierPath(ovalIn: discRect)
-        ring.lineWidth = 1
-        ring.stroke()
+        disc.lineWidth = 1
+        disc.stroke()
     }
 
     // MARK: - Board frame
