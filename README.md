@@ -31,7 +31,7 @@ Grab the latest build from the **[Releases page](https://github.com/kevinmazille
 
 | | File | Notes |
 |---|---|---|
-| **Disk image** | `DemoInk-1.1.0.dmg` | Open it, then drag **DemoInk** into **Applications** |
+| **Disk image** | `DemoInk-1.2.0.dmg` | Open it, then drag **DemoInk** into **Applications** |
 
 > **⚠️ "Unidentified developer" warning?** The macOS build isn't signed, so on
 > first launch **right-click the app → Open** to get past Gatekeeper (only needed
