@@ -52,6 +52,18 @@ final class OverlayView: NSView {
     private var lines: [DrawLine] = []
     private var isDrawing = false
 
+    /// A still of the desktop taken at draw-mode entry (before the overlay stole
+    /// focus). When set, it is painted as the Transparent-theme background so the
+    /// user draws over a frozen picture — including any transient popup/tooltip
+    /// that was attached to the pointer and would otherwise vanish the instant we
+    /// activate. Also reused as the screenshot backdrop on exit, so no live
+    /// re-capture (which no longer shows the popup) is needed. nil when Screen
+    /// Recording wasn't granted at entry; the overlay then falls back to the live
+    /// desktop showing through the clear window.
+    var frozenDesktop: CGImage? {
+        didSet { needsDisplay = true }
+    }
+
     // Current tool state (frozen into each DrawLine at stroke start). Seeded from
     // the user's saved launch defaults (Settings), falling back to DrawModel.
     private var colorIndex = Settings.defaultColorIndex
@@ -629,12 +641,13 @@ final class OverlayView: NSView {
         let client = Screenshot.meetClientName()
         let screen = window?.screen
         let windowNumber = window?.windowNumber
-        let needsDesktop = (theme == .transparent)
+        // Only the Transparent theme needs the real desktop behind it — and only
+        // when we don't already hold a frozen still (draw() paints that into the
+        // view, so cacheDisplay captures it). Light/Dark paint their own opaque
+        // background, so no desktop capture is needed either.
+        let needsDesktop = (theme == .transparent) && (frozenDesktop == nil)
 
         Task { @MainActor in
-            // Transparent theme shows the real desktop through the clear overlay,
-            // so capture what's below our window. Light/Dark paint their own
-            // opaque background, so no desktop capture is needed.
             var desktop: CGImage?
             if needsDesktop, let screen, let windowNumber {
                 desktop = await Screenshot.captureDesktop(screen: screen, excludingWindow: windowNumber)
@@ -682,11 +695,18 @@ final class OverlayView: NSView {
         guard let ctx = NSGraphicsContext.current else { return }
         ctx.imageInterpolation = .high
 
-        // Theme background: Transparent shows the desktop (clear window);
-        // Light/Dark paint a solid fill behind the annotations.
+        // Theme background: Transparent shows the desktop — the frozen still if
+        // we captured one at entry (so a popup stays visible), otherwise the live
+        // desktop through the clear window. Light/Dark paint a solid fill.
         switch theme {
         case .transparent:
-            break
+            if let frozenDesktop {
+                // respectFlipped: this view is flipped (top-left origin); without
+                // it the still would render upside-down (as in drawBoardImage).
+                NSImage(cgImage: frozenDesktop, size: bounds.size)
+                    .draw(in: bounds, from: .zero, operation: .copy, fraction: 1.0,
+                          respectFlipped: true, hints: nil)
+            }
         case .light, .dark:
             DrawModel.background(for: theme).setFill()
             bounds.fill()
