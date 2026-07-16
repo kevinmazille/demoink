@@ -128,6 +128,30 @@ enum Screenshot {
         return (ymd, hms)
     }
 
+    // MARK: - Fast freeze grab (synchronous, for draw-mode entry)
+
+    /// A fast, synchronous grab of the whole display, used only for the freeze at
+    /// draw-mode entry. Unlike `captureDesktop` (async ScreenCaptureKit, which
+    /// enumerates every on-screen window before it can grab — tens of ms), this
+    /// captures the display in one call on the calling thread, so it runs at the
+    /// very first instant of the hotkey handler.
+    ///
+    /// That latency is the whole game for keeping a pointer-attached popup or
+    /// tooltip on screen: the longer we wait between the hotkey and the grab, the
+    /// more likely the front app dismisses it (some close it on the very first key
+    /// or focus twitch). Grabbing synchronously and immediately catches it in far
+    /// more apps than the async path did.
+    ///
+    /// `CGDisplayCreateImage` is deprecated on macOS 15 but still functions on our
+    /// 13+ target; there is no synchronous ScreenCaptureKit equivalent. Needs
+    /// Screen Recording (silent preflight, never prompts); returns nil if not
+    /// granted, so the caller falls back to the live desktop.
+    static func freezeDisplay(screen: NSScreen) -> CGImage? {
+        guard let displayID = screen.displayID else { return nil }
+        guard CGPreflightScreenCaptureAccess() else { return nil }
+        return CGDisplayCreateImage(displayID)
+    }
+
     // MARK: - Desktop capture (Screen Recording, ScreenCaptureKit)
 
     /// Captures the desktop for `screen`, excluding our own overlay window so its
@@ -147,7 +171,12 @@ enum Screenshot {
     ///
     /// `screen` identifies which physical display to grab, so a capture triggered
     /// on a secondary monitor doesn't silently record the main one.
-    static func captureDesktop(screen: NSScreen, excludingWindow windowNumber: Int) async -> CGImage? {
+    ///
+    /// `excludingWindow` drops our own overlay from the captured stack; pass nil
+    /// when there is nothing to exclude — e.g. the freeze taken at draw-mode entry
+    /// happens *before* the overlay exists, so the whole desktop (including any
+    /// transient popup still attached to the pointer) is captured verbatim.
+    static func captureDesktop(screen: NSScreen, excludingWindow windowNumber: Int? = nil) async -> CGImage? {
         guard let displayID = screen.displayID else { return nil }
 
         // Silent gate: preflight never prompts. Bail before touching
@@ -164,7 +193,8 @@ enum Screenshot {
             guard let display = content.displays.first(where: { $0.displayID == displayID })
                 ?? content.displays.first else { return nil }
 
-            let excluded = content.windows.filter { $0.windowID == CGWindowID(windowNumber) }
+            let excluded = windowNumber
+                .map { n in content.windows.filter { $0.windowID == CGWindowID(n) } } ?? []
             let filter = SCContentFilter(display: display, excludingWindows: excluded)
 
             // Capture at native resolution (points × backing scale).

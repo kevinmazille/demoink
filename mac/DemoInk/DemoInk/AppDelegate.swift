@@ -93,13 +93,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         } else {
             guard let screen = screenUnderMouse() else { return }
+            // Freeze the desktop as the VERY FIRST thing, synchronously, before we
+            // touch focus or windows. Activating DemoInk deactivates the front app,
+            // which dismisses any transient popup/tooltip attached to the pointer —
+            // and some apps drop it on the first key/focus twitch. Every millisecond
+            // between the hotkey and the grab is a chance for the popup to vanish,
+            // so we grab immediately on this thread (CGDisplayCreateImage, a few ms)
+            // rather than via async ScreenCaptureKit (which enumerates all windows
+            // first — tens of ms, long enough to lose the popup in some apps).
+            // Returns nil if Screen Recording isn't granted → falls back to live.
+            let still = Screenshot.freezeDisplay(screen: screen)
+
             let window = OverlayWindow(screen: screen)
-            (window.contentView as? OverlayView)?.onExit = { [weak self] in
+            let view = window.contentView as? OverlayView
+            view?.frozenDesktop = still
+            view?.onExit = { [weak self] in
                 self?.toggleOverlay()
             }
-            NSApp.activate(ignoringOtherApps: true)
-            window.makeKeyAndOrderFront(nil)
             overlayWindow = window
+
+            // Order the overlay in and render the frozen still FIRST, while the
+            // front app is still active. Only then activate/take focus. Activating
+            // deactivates that app — which dismisses its popup on the live desktop
+            // and shuffles window focus; doing it before the overlay is painted let
+            // that live flicker show for one frame (the visible "bump"). With the
+            // opaque frozen still already covering the screen at .screenSaver level,
+            // the deactivation happens entirely behind it and is invisible.
+            window.orderFrontRegardless()
+            window.displayIfNeeded()
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKey()
         }
     }
 
